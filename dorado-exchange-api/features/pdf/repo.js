@@ -746,14 +746,11 @@ function buildPackingScrapRows(orderItems, spotPrices) {
     .map((item) => {
       const scrap = item.scrap || {};
       const spot = spotPrices.find((s) => s.type === scrap.metal);
+      const premium = item.premium ?? item.scrap.bid_premium;
       const price =
         item.price != null
           ? item.price
-          : getItemPrice(
-              scrap.content,
-              item.premium ?? item.scrap.bid_premium,
-              spot?.bid_spot
-            );
+          : getItemPrice(scrap.content, premium, spot?.bid_spot);
 
       return `
         <tr>
@@ -763,6 +760,7 @@ function buildPackingScrapRows(orderItems, spotPrices) {
             scrap.purity != null ? (scrap.purity * 100).toFixed(1) + "%" : "-"
           }</td>
           <td>${scrap.content.toFixed(3)}</td>
+          <td>${premium != null ? (premium * 100).toFixed(1) + "%" : "-"}</td>
           <td>${price ? formatCurrency(price) : "-"}</td>
         </tr>`;
     })
@@ -991,6 +989,7 @@ export async function generatePackingList({
               <th>Pre-Melt</th>
               <th>Purity</th>
               <th>Content</th>
+              <th>Rate</th>
               <th>Scrap Estimate</th>
             </tr>
           </thead>
@@ -1142,6 +1141,7 @@ export async function generateReturnPackingList({
               <th>Pre-Melt</th>
               <th>Purity</th>
               <th>Content</th>
+              <th>Rate</th>
               <th>Scrap Estimate</th>
             </tr>
           </thead>

@@ -13,7 +13,7 @@ export default function AdminPaymentProcessingPurchaseOrder({
 
   return (
     <div className="flex flex-col items-center w-full gap-4 h-full">
-      <div className="h-auto w-full p-4 rounded-lg flex flex-col gap-3 raised-off-page bg-card">
+      <div className="h-auto w-full p-4 rounded-lg flex flex-col gap-3 on-glass">
         <div className="flex flex-col items-start gap-4 w-full">
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1 text-xl text-neutral-800">
@@ -100,9 +100,9 @@ export default function AdminPaymentProcessingPurchaseOrder({
           </div>
         </div>
       </div>
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <RefinerValues order={order} />
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <ActualsEditor order={order} />
     </div>
   )

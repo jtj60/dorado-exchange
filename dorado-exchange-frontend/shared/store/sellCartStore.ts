@@ -1,17 +1,45 @@
 import { Product } from '@/features/products/types'
 import { assignScrapItemNames, Scrap } from '@/features/scrap/types'
 import { SellCartItem } from '@/features/cart/types'
+import { Rate } from '@/features/rates/types'
+import { getRatePct, sumContentByMetal } from '@/features/rates/utils/resolveRate'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 interface SellCartState {
   items: SellCartItem[]
+  rates: Rate[]
+  setRates: (rates: Rate[]) => void
   addItem: (item: SellCartItem) => void
   removeOne: (item: SellCartItem) => void
   removeAll: (item: SellCartItem) => void
   clearCart: () => void
   setItems: (items: SellCartItem[]) => void
   mergeSellCart: (backendItems: SellCartItem[]) => void
+}
+
+// Re-price scrap items from the rates table, tiered by the TOTAL scrap content
+// of each metal across the cart. Keeps the customer's preview premium in sync
+// with what the backend will enforce at order creation. No-op without rates or
+// when a metal has no rate band (leaves the existing bid_premium).
+function retierScrap(items: SellCartItem[], rates: Rate[]): SellCartItem[] {
+  if (!rates || rates.length === 0) return items
+
+  const scrapItems = items.filter((i) => i.type === 'scrap')
+  const totalsByMetal = sumContentByMetal(
+    scrapItems,
+    (i) => (i.data as Scrap).metal ?? null,
+    (i) => (i.data as Scrap).content ?? 0
+  )
+
+  return items.map((i) => {
+    if (i.type !== 'scrap') return i
+    const scrap = i.data as Scrap
+    const total = totalsByMetal[String(scrap.metal ?? '').toLowerCase()] ?? 0
+    const pct = getRatePct(rates, scrap.metal, total, 'scrap')
+    if (pct == null) return i
+    return { type: 'scrap' as const, data: { ...scrap, bid_premium: pct } }
+  })
 }
 
 function addWithQuantity(item: SellCartItem): SellCartItem {
@@ -44,12 +72,13 @@ function normalizeScrapNames(items: SellCartItem[]): SellCartItem[] {
 }
 
 function scrapMatches(a: Scrap, b: Scrap): boolean {
+  // bid_premium is a derived (rate-tiered) value, not an intrinsic property, so
+  // it is intentionally excluded — otherwise re-tiering would break merging.
   return (
     a.pre_melt === b.pre_melt &&
     a.purity === b.purity &&
     a.gross_unit === b.gross_unit &&
-    a.metal === b.metal &&
-    a.bid_premium === b.bid_premium
+    a.metal === b.metal
   )
 }
 
@@ -57,6 +86,11 @@ export const sellCartStore = create<SellCartState>()(
   persist(
     (set, get) => ({
       items: [],
+      rates: [],
+
+      setRates: (rates) => {
+        set({ rates, items: retierScrap(get().items, rates) })
+      },
 
       addItem: (item) => {
         let items = [...get().items]
@@ -75,7 +109,7 @@ export const sellCartStore = create<SellCartState>()(
           items.push(addWithQuantity(item))
         }
 
-        set({ items: normalizeScrapNames(items) })
+        set({ items: retierScrap(normalizeScrapNames(items), get().rates) })
       },
 
       removeOne: (item) => {
@@ -97,7 +131,7 @@ export const sellCartStore = create<SellCartState>()(
           } else {
             items.splice(index, 1)
           }
-          set({ items: normalizeScrapNames(items) })
+          set({ items: retierScrap(normalizeScrapNames(items), get().rates) })
         }
       },
 
@@ -109,12 +143,12 @@ export const sellCartStore = create<SellCartState>()(
           if (i.type === 'scrap') return !scrapMatches(i.data as Scrap, item.data as Scrap)
           return true
         })
-        set({ items: normalizeScrapNames(filtered) })
+        set({ items: retierScrap(normalizeScrapNames(filtered), get().rates) })
       },
 
       clearCart: () => set({ items: [] }),
 
-      setItems: (items: SellCartItem[]) => set({ items }),
+      setItems: (items: SellCartItem[]) => set({ items: retierScrap(items, get().rates) }),
 
       mergeSellCart: (backendItems: SellCartItem[]) => {
         const localItems = get().items
@@ -177,7 +211,7 @@ export const sellCartStore = create<SellCartState>()(
           }
         })
 
-        set({ items: normalizeScrapNames(mergedItems) })
+        set({ items: retierScrap(normalizeScrapNames(mergedItems), get().rates) })
       },
     }),
     {

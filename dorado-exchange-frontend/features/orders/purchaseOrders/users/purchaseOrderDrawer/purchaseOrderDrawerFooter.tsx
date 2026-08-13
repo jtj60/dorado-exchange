@@ -22,6 +22,7 @@ import PriceNumberFlow from '@/shared/ui/PriceNumberFlow'
 import formatPhoneNumber from '@/shared/utils/formatPhoneNumber'
 import { payoutOptions } from '@/features/payouts/types'
 import getPurchaseOrderBullionPrice from '@/features/orders/purchaseOrders/utils/getPurchaseOrderBullionPrice'
+import { formatRate } from '@/features/rates/utils/resolveRate'
 import { usePurchaseOrderMetals } from '@/features/orders/purchaseOrders/users/queries'
 import getPurchaseOrderScrapPrice from '@/features/orders/purchaseOrders/utils/getPurchaseOrderScrapPrice'
 import getPurchaseOrderTotal from '@/features/orders/purchaseOrders/utils/purchaseOrderTotal'
@@ -74,6 +75,7 @@ export default function PurchaseOrderDrawerFooter({ order }: PurchaseOrderDrawer
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-left">Line Item</TableHead>
                 <TableHead className="text-center">Content</TableHead>
+                <TableHead className="text-center">Rate</TableHead>
                 <TableHead className="text-center">Payable</TableHead>
                 <TableHead className="text-right">Estimate</TableHead>
               </TableRow>
@@ -84,6 +86,9 @@ export default function PurchaseOrderDrawerFooter({ order }: PurchaseOrderDrawer
                   <TableCell className="text-left">{item.scrap?.name}</TableCell>
                   <TableCell className="text-center">
                     {item.scrap?.content?.toFixed(3)} toz
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {formatRate(item.premium ?? item.scrap?.bid_premium)}
                   </TableCell>
                   <TableCell className="text-center">
                     {(

@@ -122,7 +122,7 @@ export default function AdminRejectedPurchaseOrder({ order }: PurchaseOrderDrawe
                         inputMode="decimal"
                         readOnly={!order.spots_locked}
                         className={cn(
-                          'input-floating-label-form no-spinner text-center w-full text-base h-8',
+                          'on-glass no-spinner text-center w-full text-base h-8',
                           !order.spots_locked && 'cursor-not-allowed'
                         )}
                         value={
@@ -147,7 +147,7 @@ export default function AdminRejectedPurchaseOrder({ order }: PurchaseOrderDrawe
                 <ScrapTable scrapItems={scrapItems} config={config} order_id={order.id} />
               </div>
             )}
-            <div className="separator-inset" />
+            <div className="glass-divider" />
 
             {bullionItems && (
               <div className="flex flex-col w-full gap-3">
@@ -157,12 +157,12 @@ export default function AdminRejectedPurchaseOrder({ order }: PurchaseOrderDrawe
                 <BullionTable bullionItems={bullionItems} config={config} order_id={order.id} />
               </div>
             )}
-            <div className="separator-inset" />
+            <div className="glass-divider" />
           </div>
         </div>
       ) : (
         <div className="flex flex-col h-full w-full gap-2 mb-4">
-          <div className="flex flex-col w-full h-auto bg-card raised-off-page gap-2 p-4">
+          <div className="flex flex-col w-full h-auto on-glass gap-2 p-4">
             <div className="flex w-full justify-between items-center">
               <div className="text-sm text-neutral-700">Offer Amount:</div>
 
@@ -305,7 +305,7 @@ function ScrapTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-left text-base h-6'
+                            'on-glass no-spinner text-left text-base h-6'
                           )}
                           defaultValue={item.scrap?.pre_melt}
                           onBlur={(e) => {
@@ -341,7 +341,7 @@ function ScrapTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-left text-base h-6'
+                            'on-glass no-spinner text-left text-base h-6'
                           )}
                           defaultValue={item.scrap?.post_melt}
                           onBlur={(e) => {
@@ -377,7 +377,7 @@ function ScrapTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-center text-base h-6'
+                            'on-glass no-spinner text-center text-base h-6'
                           )}
                           defaultValue={item.scrap?.purity}
                           onBlur={(e) => {
@@ -407,7 +407,7 @@ function ScrapTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-center text-base h-6'
+                            'on-glass no-spinner text-center text-base h-6'
                           )}
                           defaultValue={item.premium}
                           onBlur={(e) => {
@@ -695,7 +695,7 @@ function BullionTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-center text-base h-6'
+                            'on-glass no-spinner text-center text-base h-6'
                           )}
                           defaultValue={item.quantity}
                           onBlur={(e) => {
@@ -727,7 +727,7 @@ function BullionTable({
                           pattern="[0-9]*"
                           inputMode="decimal"
                           className={cn(
-                            'input-floating-label-form no-spinner text-right text-base h-6'
+                            'on-glass no-spinner text-right text-base h-6'
                           )}
                           defaultValue={item.premium ?? item.product?.bid_premium}
                           onBlur={(e) => {

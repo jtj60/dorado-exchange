@@ -5,11 +5,9 @@ import { CheckCircle } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import { cn } from '@/shared/utils/cn'
-import { useSpotPrices } from '@/features/spots/queries'
 
 export default function MetalStep() {
   const form = useFormContext<Scrap>()
-  const { data: spotPrices = [] } = useSpotPrices()
 
   return (
     <FormField
@@ -25,8 +23,6 @@ export default function MetalStep() {
               if (defaultPurity !== undefined) {
                 form.setValue('purity', defaultPurity)
               }
-              const spot = spotPrices.find((s) => s.type === val)
-              form.setValue('bid_premium', spot?.scrap_percentage)
             }}
             className="gap-3 w-full items-stretch flex flex-col"
           >

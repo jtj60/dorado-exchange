@@ -4,7 +4,7 @@ import axios from "axios";
 export async function getSpotPrices (req, res) {
   try {
     const result = await pool.query(
-      `SELECT id, type, ask_spot, bid_spot, percent_change, dollar_change, scrap_percentage, bullion_percentage
+      `SELECT id, type, ask_spot, bid_spot, percent_change, dollar_change
        FROM exchange.metals
        ORDER BY
          CASE type
@@ -19,26 +19,6 @@ export async function getSpotPrices (req, res) {
   } catch (error) {
     console.error("Error fetching spot prices:", error);
     res.status(500).json({ error: "Failed to fetch spot prices." });
-  }
-};
-
-export async function updateScrapPercentages (req, res) {
-  const { id, scrap_percentage } = req.body;
-  try {
-    const query = `
-      UPDATE exchange.metals
-      SET scrap_percentage = $1
-      WHERE id = $2
-      RETURNING *;
-    `;
-
-    const values = [scrap_percentage, id];
-
-    const result = await pool.query(query, values);
-    res.status(200).json(result.rows[0]);
-  } catch (error) {
-    console.error("Error updating spot price", error);
-    res.status(500).json({ error: "Failed to update spot price." });
   }
 };
 

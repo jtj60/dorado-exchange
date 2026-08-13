@@ -53,7 +53,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
                     pattern="[0-9]*"
                     inputMode="decimal"
                     className={cn(
-                      'input-floating-label-form no-spinner text-center w-full text-base h-8'
+                      'on-glass no-spinner text-center w-full text-base h-8'
                     )}
                     defaultValue={
                       spot?.bid_spot ??
@@ -71,7 +71,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card raised-off-page overflow-hidden">
+      <div className="rounded-xl border border-border on-glass overflow-hidden">
         <div className="flex items-center justify-between w-full px-3 py-2 text-xs tracking-widest text-neutral-600 bg-muted/40">
           <div>Item</div>
           <div className="text-right">Premium</div>
@@ -99,7 +99,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
                     inputMode="decimal"
                     step="0.01"
                     min="-9999"
-                    className={cn('input-floating-label-form no-spinner text-right h-8')}
+                    className={cn('on-glass no-spinner text-right h-8')}
                     defaultValue={
                       item.refiner_premium != null ? (item.refiner_premium * 100).toString() : ''
                     }
@@ -123,7 +123,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
           })}
         </div>
       </div>
-      <div className="rounded-xl border border-border bg-card raised-off-page">
+      <div className="rounded-xl border border-border on-glass">
         <div className="flex items-center justify-between w-full px-3 py-2 text-xs tracking-widest text-neutral-600 bg-muted/40">
           <div>Update Refiner Fee</div>
           <div className="text-right">Amount</div>
@@ -135,7 +135,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
               type="number"
               pattern="[0-9]*"
               inputMode="decimal"
-              className={cn('input-floating-label-form no-spinner text-right w-full text-base h-8')}
+              className={cn('on-glass no-spinner text-right w-full text-base h-8')}
               defaultValue={order.refiner_fee}
               disabled={updateFee.isPending}
               onBlur={(e) =>

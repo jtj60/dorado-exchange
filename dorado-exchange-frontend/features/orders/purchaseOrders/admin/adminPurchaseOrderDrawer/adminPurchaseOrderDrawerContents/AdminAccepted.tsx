@@ -23,7 +23,7 @@ export default function AdminAcceptedPurchaseOrder({ order }: PurchaseOrderDrawe
               variant="ghost"
               className={cn(
                 config.text_color,
-                'flex items-center justify-between gap-1 px-4 font-normal text-sm bg-card raised-off-page border-none h-9 w-full'
+                'flex items-center justify-between gap-1 px-4 font-normal text-sm on-glass border-none h-9 w-full'
               )}
             >
               {payoutOptions.find((m) => m.method === order.payout.method)?.label}

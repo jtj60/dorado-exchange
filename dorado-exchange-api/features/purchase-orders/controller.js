@@ -149,24 +149,6 @@ export async function updateStatus(req, res, next) {
   }
 }
 
-export async function updateScrapPercentage(req, res, next) {
-  try {
-    const updated = await purchaseOrderService.updateScrap(req.body);
-    return res.status(200).json({ updated });
-  } catch (err) {
-    return next(err);
-  }
-}
-
-export async function resetScrapPercentage(req, res, next) {
-  try {
-    const updated = await purchaseOrderService.resetScrap(req.body);
-    return res.status(200).json({ updated });
-  } catch (err) {
-    return next(err);
-  }
-}
-
 export async function updateSpot(req, res, next) {
   try {
     const updated = await purchaseOrderService.updateSpot(req.body);

@@ -23,6 +23,7 @@ import formatPhoneNumber from '@/shared/utils/formatPhoneNumber'
 import { PurchaseOrderActionButtons } from './adminPurchaseOrderDrawerContents/adminPurchaseOrderActionButtons'
 import { payoutOptions } from '@/features/payouts/types'
 import getPurchaseOrderBullionTotal from '@/features/orders/purchaseOrders/utils/purchaseOrderBullionTotal'
+import { formatRate } from '@/features/rates/utils/resolveRate'
 import getPurchaseOrderScrapTotal from '@/features/orders/purchaseOrders/utils/purchaseOrderScrapTotal'
 import getPurchaseOrderTotal from '@/features/orders/purchaseOrders/utils/purchaseOrderTotal'
 import getPurchaseOrderBullionPrice from '@/features/orders/purchaseOrders/utils/getPurchaseOrderBullionPrice'
@@ -78,6 +79,7 @@ export default function AdminPurchaseOrderDrawerFooter({ order }: PurchaseOrderD
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-left">Line Item</TableHead>
                     <TableHead className="text-center">Content (toz)</TableHead>
+                    <TableHead className="text-center">Rate</TableHead>
                     <TableHead className="text-center">Payable (toz)</TableHead>
                     <TableHead className="text-right">Estimate</TableHead>
                   </TableRow>
@@ -88,6 +90,9 @@ export default function AdminPurchaseOrderDrawerFooter({ order }: PurchaseOrderD
                       <TableCell className="text-left">{item.scrap?.name}</TableCell>
                       <TableCell className="text-right">
                         {item.scrap?.content?.toFixed(3)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {formatRate(item.premium ?? item.scrap?.bid_premium)}
                       </TableCell>
                       <TableCell className="text-right">
                         {(
@@ -281,7 +286,7 @@ function Accordion({
   total: number
 }) {
   return (
-    <div className="rounded-md bg-card raised-off-page">
+    <div className="rounded-md on-glass">
       <button
         type="button"
         onClick={toggle}

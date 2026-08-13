@@ -24,6 +24,8 @@ import { FloatingNav } from '../../features/navigation/ui/FloatingMenu'
 import { cn } from '@/shared/utils/cn'
 import { useScrollLock } from '@/shared/hooks/useScrollock'
 import { useGetSession, useStopImpersonation } from '@/features/auth/queries'
+import { useRates } from '@/features/rates/queries'
+import { sellCartStore } from '@/shared/store/sellCartStore'
 import Shell from '@/features/navigation/ui/Shell'
 import Footer from '@/features/navigation/ui/Footer'
 
@@ -40,6 +42,14 @@ export default function LayoutProvider({ children }: { children: React.ReactNode
   const stopImpersonation = useStopImpersonation()
 
   const [visible, setVisible] = useState(true)
+
+  // Keep the sell cart's rate table in sync so scrap premiums stay tiered to
+  // current rates (backend re-resolves as the source of truth on submit).
+  const { data: rates = [] } = useRates()
+  const setSellCartRates = sellCartStore((s) => s.setRates)
+  useEffect(() => {
+    setSellCartRates(rates)
+  }, [rates, setSellCartRates])
 
   useScrollLock(isAnyDrawerOpen)
 

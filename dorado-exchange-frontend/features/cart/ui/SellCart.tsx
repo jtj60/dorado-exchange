@@ -8,6 +8,7 @@ import NumberFlow from '@number-flow/react'
 import { sellCartStore } from '@/shared/store/sellCartStore'
 import { useRouter } from 'next/navigation'
 import getScrapPrice from '@/features/scrap/utils/getScrapPrice'
+import { formatRate } from '@/features/rates/utils/resolveRate'
 import { getGrossLabel, getPurityLabel, Scrap } from '@/features/scrap/types'
 import { Product } from '@/features/products/types'
 import getProductBidPrice from '@/features/products/utils/getProductBidPrice'
@@ -173,6 +174,7 @@ export default function SellCart() {
             <div className="flex flex-col mr-auto gap-1">
               {getGrossLabel(item.pre_melt, item.gross_unit)}
               {getPurityLabel(item.purity, item.metal)}
+              <div className="text-xs text-neutral-600">Rate: {formatRate(item.bid_premium)}</div>
             </div>
 
             <div className="ml-auto text-neutral-800 text-base">

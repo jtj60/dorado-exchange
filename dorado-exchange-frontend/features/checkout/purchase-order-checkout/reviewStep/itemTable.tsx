@@ -9,6 +9,7 @@ import { sellCartStore } from '@/shared/store/sellCartStore'
 import { cn } from '@/shared/utils/cn'
 import { SellCartItem } from '@/features/cart/types'
 import getScrapPrice from '@/features/scrap/utils/getScrapPrice'
+import { formatRate } from '@/features/rates/utils/resolveRate'
 import getProductBidPrice from '@/features/products/utils/getProductBidPrice'
 import { usePurchaseOrderCheckoutStore } from '@/shared/store/purchaseOrderCheckoutStore'
 import { payoutOptions } from '@/features/payouts/types'
@@ -231,6 +232,10 @@ const scrapColumns: ColumnDef<Extract<SellCartItem, { type: 'scrap' }>>[] = [
   {
     header: 'Purity',
     cell: ({ row }) => <span>{(row.original.data.purity * 100).toFixed(2)}%</span>,
+  },
+  {
+    header: 'Rate',
+    cell: ({ row }) => <span>{formatRate(row.original.data.bid_premium)}</span>,
   },
   {
     header: 'Est. Value',

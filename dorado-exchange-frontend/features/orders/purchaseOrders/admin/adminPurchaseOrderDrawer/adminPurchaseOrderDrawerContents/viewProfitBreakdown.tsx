@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 import { usePurchaseOrderRefinerMetals } from '@/features/orders/purchaseOrders/admin/queries'
 import { computePurchaseOrderTotals } from '@/features/orders/purchaseOrders/utils/calculatePurchaseOrderTotals'
+import { useRates } from '@/features/rates/queries'
 import { PurchaseOrder, statusConfig } from '@/features/orders/purchaseOrders/types'
 import { usePurchaseOrderMetals } from '@/features/orders/purchaseOrders/users/queries'
 
@@ -73,9 +74,10 @@ function AccordionItem({
 export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
   const { data: orderSpotPrices = [] } = usePurchaseOrderMetals(order.id)
   const { data: refinerSpotPrices = [] } = usePurchaseOrderRefinerMetals(order.id)
+  const { data: rates = [] } = useRates()
   const config = statusConfig[order.purchase_order_status]
 
-  const totals = computePurchaseOrderTotals(order, orderSpotPrices, refinerSpotPrices)
+  const totals = computePurchaseOrderTotals(order, orderSpotPrices, refinerSpotPrices, rates)
 
   const metalsFor = (party: Party, bucket: Bucket) => totals[party][bucket]
 
@@ -266,14 +268,14 @@ export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
 
   if (availableBuckets.length === 0) {
     return (
-      <div className="flex w-full h-full bg-card raised-off-page p-4 rounded-md">
+      <div className="flex w-full h-full on-glass p-4 rounded-md">
         <div className="text-neutral-600">No items to display.</div>
       </div>
     )
   }
 
   return (
-    <div className="flex w-full bg-card raised-off-page p-4 rounded-md">
+    <div className="flex w-full on-glass p-4 rounded-md">
       <div className="flex flex-col gap-4 w-full">
         <div className="text-xl text-neutral-900">Profit Breakdown</div>
 

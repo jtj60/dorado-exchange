@@ -11,7 +11,6 @@ export type SpotPrice = {
   bid_spot: number
   percent_change: number
   dollar_change: number
-  scrap_percentage: number
   created_at?: Date
   updated_at?: Date
 }
@@ -23,8 +22,6 @@ export interface AdminMetal {
   bid_spot: string,
   percent_change: string,
   dollar_change: string,
-  scrap_percentage: number,
-  bullion_percentage: number,
 }
 
 export const spotPriceSchema = z.object({
@@ -36,7 +33,6 @@ export const spotPriceSchema = z.object({
   bid_spot: z.number(),
   percent_change: z.number(),
   dollar_change: z.number(),
-  scrap_percentage: z.number(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 })

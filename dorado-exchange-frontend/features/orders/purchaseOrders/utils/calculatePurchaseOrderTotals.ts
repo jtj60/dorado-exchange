@@ -5,6 +5,8 @@ import {
   PurchaseOrderTotals,
 } from '@/features/orders/purchaseOrders/types'
 import { SpotPrice } from '@/features/spots/types'
+import { Rate } from '@/features/rates/types'
+import { getRatePct, sumContentByMetal } from '@/features/rates/utils/resolveRate'
 
 type MetalName = 'Gold' | 'Silver' | 'Platinum' | 'Palladium'
 type MetalKey = 'gold' | 'silver' | 'platinum' | 'palladium'
@@ -101,24 +103,26 @@ function getSharesForItem(
   metal: MetalName,
   orderSpots: SpotPrice[],
   refinerSpots: SpotPrice[],
-  category: 'scrap' | 'bullion' | 'total'
+  category: 'scrap' | 'bullion' | 'total',
+  rates: Rate[],
+  scrapTotalsByMetal: Record<string, number>
 ) {
   const orderSpot = getSpot(orderSpots, metal)
   const refSpot = getSpot(refinerSpots, metal)
 
-  const doradoPremium =
-    item.premium != null
-      ? Number(item.premium)
-      : orderSpot?.scrap_percentage != null
-      ? Number(orderSpot.scrap_percentage)
+  // For scrap, the default dorado premium comes from the rates table, tiered by
+  // total scrap of this metal in the order. An explicit item.premium (admin
+  // override) always wins.
+  const ratePremium =
+    item.item_type === 'scrap'
+      ? getRatePct(rates, metal, scrapTotalsByMetal[metal.toLowerCase()] ?? 0, 'scrap')
       : undefined
 
+  const doradoPremium =
+    item.premium != null ? Number(item.premium) : ratePremium ?? undefined
+
   const refinerPremium =
-    item.refiner_premium != null
-      ? Number(item.refiner_premium)
-      : refSpot?.scrap_percentage != null
-      ? Number(refSpot.scrap_percentage)
-      : undefined
+    item.refiner_premium != null ? Number(item.refiner_premium) : undefined
 
   const shares = premiumsToShares(category, doradoPremium, refinerPremium)
   return { ...shares, orderSpot, refSpot }
@@ -128,7 +132,9 @@ function computeMetalsForAllParties(
   order: PurchaseOrder,
   category: 'scrap' | 'bullion' | 'total',
   orderSpots: SpotPrice[],
-  refinerSpots: SpotPrice[]
+  refinerSpots: SpotPrice[],
+  rates: Rate[],
+  scrapTotalsByMetal: Record<string, number>
 ) {
   const make = () => emptyMetalsDict()
   const customer = make()
@@ -152,7 +158,9 @@ function computeMetalsForAllParties(
       metal,
       orderSpots,
       refinerSpots,
-      category
+      category,
+      rates,
+      scrapTotalsByMetal
     )
 
     const actualScrap = isScrap ? getScrapActualContent(item) : null
@@ -243,11 +251,19 @@ export function getTotalProfit(
 export function computePurchaseOrderTotals(
   order: PurchaseOrder,
   orderSpots: SpotPrice[],
-  refinerSpots: SpotPrice[]
+  refinerSpots: SpotPrice[],
+  rates: Rate[] = []
 ): PurchaseOrderTotals {
-  const scrap = computeMetalsForAllParties(order, 'scrap', orderSpots, refinerSpots)
-  const bullion = computeMetalsForAllParties(order, 'bullion', orderSpots, refinerSpots)
-  const total = computeMetalsForAllParties(order, 'total', orderSpots, refinerSpots)
+  // Total scrap content per metal for rate tiering (per-metal, order total).
+  const scrapTotalsByMetal = sumContentByMetal(
+    order.order_items.filter((i) => i.item_type === 'scrap'),
+    (i) => getItemMetal(i),
+    (i) => getItemContent(i)
+  )
+
+  const scrap = computeMetalsForAllParties(order, 'scrap', orderSpots, refinerSpots, rates, scrapTotalsByMetal)
+  const bullion = computeMetalsForAllParties(order, 'bullion', orderSpots, refinerSpots, rates, scrapTotalsByMetal)
+  const total = computeMetalsForAllParties(order, 'total', orderSpots, refinerSpots, rates, scrapTotalsByMetal)
   const shipping = getShippingFees(order)
   const spotNet = getSpotNet(total.customer, orderSpots, refinerSpots)
 

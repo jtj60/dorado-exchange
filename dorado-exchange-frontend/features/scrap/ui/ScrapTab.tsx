@@ -16,6 +16,8 @@ import MetalStep from '@/features/scrap/ui/MetalStep'
 import WeightStep from '@/features/scrap/ui/WeightStep'
 import PurityStep from '@/features/scrap/ui/PurityStep'
 import { useSpotPrices } from '@/features/spots/queries'
+import { useRates } from '@/features/rates/queries'
+import { getRatePct } from '@/features/rates/utils/resolveRate'
 
 
 const { useStepper, utils } = defineStepper(
@@ -25,6 +27,7 @@ const { useStepper, utils } = defineStepper(
 
 export default function ScrapForm() {
   const { data: spotPrices = [] } = useSpotPrices()
+  const { data: rates = [] } = useRates()
 
   const form = useForm<ScrapInput>({
     resolver: zodResolver(scrapSchema),
@@ -36,7 +39,7 @@ export default function ScrapForm() {
       pre_melt: 0,
       gross_unit: 'g',
       purity: purityOptions['Gold'][0].value,
-      bid_premium: spotPrices[0]?.scrap_percentage ?? 0.75,
+      bid_premium: 0.75,
     },
   })
 
@@ -64,9 +67,19 @@ export default function ScrapForm() {
     const spot = spotPrices.find((s) => s.type === values.metal)
     const content =
       convertTroyOz(values.pre_melt ?? 0, values.gross_unit ?? 'g') * (values.purity ?? 0)
-    const price = getScrapPrice(content, spot?.scrap_percentage ?? 0, spot)
 
-    const bid_premium = spot?.scrap_percentage ?? 0.75
+    // Premium comes from the rates table, tiered by the total scrap of this
+    // metal already in the cart plus what we're adding. addItem re-tiers all
+    // scrap of the metal, and the backend re-resolves on submit.
+    const existingScrapTotal = sellCartStore
+      .getState()
+      .items.filter((i) => i.type === 'scrap' && (i.data as Scrap).metal === values.metal)
+      .reduce((sum, i) => sum + ((i.data as Scrap).content ?? 0), 0)
+    const metalTotal = existingScrapTotal + content
+
+    const bid_premium = getRatePct(rates, values.metal, metalTotal, 'scrap') ?? 0.75
+
+    const price = getScrapPrice(content, bid_premium, spot)
 
     const item = {
       type: 'scrap' as const,
@@ -93,7 +106,7 @@ export default function ScrapForm() {
       pre_melt: 0,
       gross_unit: 'g',
       purity: purityOptions['Gold'][0].value,
-      bid_premium: spotPrices[0]?.scrap_percentage ?? 0.75,
+      bid_premium: 0.75,
     })
     setSubmitted(false)
     stepper.goTo('itemForm')

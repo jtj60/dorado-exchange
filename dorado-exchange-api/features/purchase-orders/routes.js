@@ -13,8 +13,6 @@ import {
   sendOffer,
   updateStatus,
   updateRejectedOffer,
-  updateScrapPercentage,
-  resetScrapPercentage,
   updateSpot,
   lockSpots,
   unlockSpots,
@@ -62,8 +60,6 @@ router.get('/get_all_purchase_orders', requireAdmin, getAllPurchaseOrders);
 router.post('/send_offer', requireAdmin, sendOffer);
 router.post('/update_status', requireAdmin, updateStatus);
 router.post('/update_rejected_offer', requireAdmin, updateRejectedOffer);
-router.post('/update_scrap', requireAdmin, updateScrapPercentage);
-router.post('/reset_scrap', requireAdmin, resetScrapPercentage);
 router.post('/update_spot', requireAdmin, updateSpot);
 router.post('/lock_spots', requireAdmin, lockSpots);
 router.post('/unlock_spots', requireAdmin, unlockSpots);

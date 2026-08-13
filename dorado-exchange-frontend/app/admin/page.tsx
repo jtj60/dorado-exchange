@@ -15,7 +15,6 @@ import {
   CalculatorIcon,
   WalletIcon,
   ChartLineUpIcon,
-  GearIcon,
   CaretLeftIcon,
   ShippingContainerIcon,
   TruckIcon,
@@ -35,7 +34,6 @@ import { useDrawerStore } from '@/shared/store/drawerStore'
 import { UsersPage } from '@/features/users/ui/UsersAdminTable'
 import LeadsPage from '@/features/leads/ui/LeadsAdminTable'
 import ProductsPage from '@/features/products/ui/AdminProductsTable'
-import ScrapCards from '@/features/scrap/ui/AdminScrapCards'
 import ReviewsPage from '@/features/reviews/ui/ReviewsAdminTable'
 
 import { Suspense } from 'react'
@@ -108,7 +106,6 @@ function AdminShell() {
         label: 'Inventory',
         items: [
           { key: 'bullion', label: 'Bullion', icon: CoinsIcon },
-          { key: 'scrap', label: 'Scrap', icon: GearIcon },
           { key: 'rates', label: 'Rates', icon: PercentIcon },
         ],
       },
@@ -156,8 +153,6 @@ function AdminShell() {
         return <ReviewsPage />
       case 'bullion':
         return <ProductsPage />
-      case 'scrap':
-        return <ScrapCards />
       case 'rates':
         return <RatesPage />
       case 'appointments':

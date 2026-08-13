@@ -2,7 +2,9 @@ import pool from "#db";
 import * as purchaseOrderRepo from "#features/purchase-orders/repo.js";
 import * as scrapRepo from "#features/scrap/repo.js";
 import * as transactionRepo from "#features/transactions/repo.js";
+import * as ratesRepo from "#features/rates/repo.js";
 import { calculateTotalPrice } from "#features/purchase-orders/utils/calculations.js";
+import { getRatePct, sumContentByMetal } from "#features/rates/utils/resolveRate.js";
 
 import * as shipmentRepo from "#features/shipping/shipments/repo.js";
 import * as pickupRepo from "#features/shipping/pickups/repo.js";
@@ -190,6 +192,13 @@ export async function createPurchaseOrder(purchase_order, user_id) {
     });
 
     await purchaseOrderRepo.insertItems(client, order_id, purchase_order.items);
+
+    // Source of truth: (re)price every scrap item's premium from the rates
+    // table, tiered by the total scrap content of each metal on the order.
+    // Products keep their own per-product bid_premium. Same helper the admin
+    // add-item path uses, so both stay consistent.
+    await retierOrderScrapPremiums(order_id, client);
+
     await purchaseOrderRepo.insertOrderMetals(client, order_id);
     await purchaseOrderRepo.insertRefinerMetals(client, order_id);
 
@@ -464,8 +473,39 @@ export async function deleteOrderItems({ items }) {
   const scrapIds = items
     .map((item) => item.scrap?.id)
     .filter((id) => id !== null);
+  const orderId = items[0]?.purchase_order_id ?? null;
+
   await scrapRepo.deleteItems(scrapIds);
-  return await purchaseOrderRepo.deleteOrderItems(ids);
+  const result = await purchaseOrderRepo.deleteOrderItems(ids);
+
+  // Removing scrap changes the per-metal totals, so re-tier the survivors.
+  if (orderId) await retierOrderScrapPremiums(orderId);
+
+  return result;
+}
+
+// Re-resolve every scrap item's premium on an order from the rates table,
+// tiered by the total scrap content of each metal on the order. Runs whenever
+// the order's scrap composition changes so admin edits stay consistent with
+// customer pricing. No-op when there are no rate bands.
+export async function retierOrderScrapPremiums(orderId, executor) {
+  const rates = await ratesRepo.getAllRates();
+  if (!rates?.length) return;
+
+  const scrapItems = await purchaseOrderRepo.findOrderScrapItems(orderId, executor);
+  const totalsByMetal = sumContentByMetal(
+    scrapItems,
+    (i) => i.metal,
+    (i) => Number(i.content) || 0
+  );
+
+  for (const si of scrapItems) {
+    const total = totalsByMetal[String(si.metal ?? "").toLowerCase()] ?? 0;
+    const pct = getRatePct(rates, si.metal, total, "scrap");
+    if (pct != null) {
+      await purchaseOrderRepo.updatePremium(si.id, pct, executor);
+    }
+  }
 }
 
 export async function createOrderItem({ item, purchase_order_id }) {
@@ -478,12 +518,16 @@ export async function createOrderItem({ item, purchase_order_id }) {
       scrap_id = await scrapRepo.createNewItem(item, client);
     }
 
-    const updated = purchaseOrderRepo.createOrderItem(
+    const updated = await purchaseOrderRepo.createOrderItem(
       item,
       purchase_order_id,
       scrap_id,
       client
     );
+
+    // Admin-added scrap must be priced from rates too — re-tier the whole
+    // order so it matches customer checkout (per-metal order total).
+    await retierOrderScrapPremiums(purchase_order_id, client);
 
     await client.query("COMMIT");
 

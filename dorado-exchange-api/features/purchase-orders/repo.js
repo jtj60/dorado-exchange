@@ -788,14 +788,28 @@ export async function updateRefinerSpot({ spot, updated_spot }) {
   return await pool.query(query, values);
 }
 
-export async function updatePremium(item_id, premium) {
+export async function updatePremium(item_id, premium, executor = pool) {
   const query = `
     UPDATE exchange.purchase_order_items
     SET premium = $1
     WHERE id = $2
   `;
   const values = [premium, item_id];
-  return await pool.query(query, values);
+  return await executor.query(query, values);
+}
+
+// Scrap line items on an order with the metal + estimated content needed to
+// re-tier their premiums from the rates table.
+export async function findOrderScrapItems(orderId, executor = pool) {
+  const query = `
+    SELECT poi.id, ms.type AS metal, s.content
+    FROM exchange.purchase_order_items poi
+    JOIN exchange.scrap s ON poi.scrap_id = s.id
+    JOIN exchange.metals ms ON s.metal_id = ms.id
+    WHERE poi.purchase_order_id = $1
+  `;
+  const { rows } = await executor.query(query, [orderId]);
+  return rows;
 }
 
 export async function updateRefinerPremium(item_id, refiner_premium) {

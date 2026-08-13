@@ -6,6 +6,9 @@ import getScrapPrice from '@/features/scrap/utils/getScrapPrice'
 import { convertTroyOz } from '@/shared/utils/convertWeights'
 import { CoinsIcon, PercentIcon, ScalesIcon } from '@phosphor-icons/react'
 import { useSpotPrices } from '@/features/spots/queries'
+import { useRates } from '@/features/rates/queries'
+import { getRatePct, formatRate } from '@/features/rates/utils/resolveRate'
+import { sellCartStore } from '@/shared/store/sellCartStore'
 import PriceNumberFlow from '@/shared/ui/PriceNumberFlow'
 
 export default function ReviewStep({ showBanner }: { showBanner: boolean }) {
@@ -14,14 +17,26 @@ export default function ReviewStep({ showBanner }: { showBanner: boolean }) {
   const unit = form.watch('gross_unit') || 'g'
   const pre_melt = form.watch('pre_melt') ?? 0
   const purity = form.watch('purity') ?? 0
-  const bid_premium = form.watch('bid_premium') ?? 0
 
   const { data: spotPrices = [] } = useSpotPrices()
+  const { data: rates = [] } = useRates()
+  const items = sellCartStore((s) => s.items)
 
   const spot = spotPrices.find((s) => s.type === metal)
   const content = convertTroyOz(pre_melt, unit) * purity
 
-  const price = getScrapPrice(content, bid_premium ?? 0, spot)
+  // Match the cart: premium is tiered by the total scrap of this metal in the
+  // cart (the item is already added by the time we reach this step).
+  const metalTotal = items
+    .filter((i) => i.type === 'scrap' && (i.data as Scrap).metal === metal)
+    .reduce((sum, i) => sum + ((i.data as Scrap).content ?? 0), 0)
+
+  const bid_premium =
+    getRatePct(rates, metal, metalTotal || content, 'scrap') ??
+    form.watch('bid_premium') ??
+    0.75
+
+  const price = getScrapPrice(content, bid_premium, spot)
 
   return (
     <AnimatePresence mode="wait">
@@ -49,6 +64,14 @@ export default function ReviewStep({ showBanner }: { showBanner: boolean }) {
               <span className="text-base text-neutral-600">Purity:</span>
             </div>
             {getPurityLabel(purity, metal)}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PercentIcon className="text-primary" size={24} />
+              <span className="text-base text-neutral-600">Rate:</span>
+            </div>
+            <span className="text-lg text-neutral-800">{formatRate(bid_premium)}</span>
           </div>
         </div>
 
