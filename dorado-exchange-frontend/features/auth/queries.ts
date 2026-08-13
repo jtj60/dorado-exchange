@@ -293,9 +293,12 @@ export const useSendVerifyEmail = () => {
 export const useCreateUser = () => {
   return useMutation({
     mutationFn: async ({ email, name }: { email: string; name: string }) => {
+      // Create the account passwordless (omit password) so the user can set
+      // their own password after signing in via the magic link on
+      // /verify-login. better-auth's setPassword rejects accounts that already
+      // have a password, so giving one here would block that flow.
       const newUser = await admin.createUser({
         email: email,
-        password: crypto.randomUUID(),
         name: name,
         role: 'user',
       })
@@ -306,6 +309,17 @@ export const useCreateUser = () => {
       })
 
       return newUser
+    },
+  })
+}
+
+export const useSetPassword = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (newPassword: string) =>
+      apiRequest('POST', '/account/set_password', { newPassword }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['session'], refetchType: 'active' })
     },
   })
 }

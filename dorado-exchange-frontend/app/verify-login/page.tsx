@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { magicLink, useUser } from '@/features/auth/authClient'
-import ResetPasswordForm from '@/features/auth/ui/ResetPasswordForm'
+import SetPasswordForm from '@/features/auth/ui/SetPasswordForm'
 import { Button } from '@/shared/ui/base/button'
 
 // Reached from the magic-link email (admin-created accounts, "your account is
@@ -61,12 +61,12 @@ function VerifyLoginContent() {
         <div className="flex flex-col gap-1 mr-auto text-left">
           <div className="text-2xl text-neutral-900">Welcome{user?.name ? `, ${user.name}` : ''}!</div>
           <div className="text-sm text-neutral-700">
-            We suggest you reset your password before doing anything else.
+            We suggest you set your password before doing anything else.
           </div>
         </div>
         <div className="separator-inset" />
 
-        <ResetPasswordForm />
+        <SetPasswordForm />
         <div className="separator-inset" />
         <Button
           variant="link"
