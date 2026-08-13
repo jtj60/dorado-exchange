@@ -40,7 +40,6 @@ import ScrapCards from '@/features/scrap/ui/AdminScrapCards'
 import ReviewsPage from '@/features/reviews/ui/ReviewsAdminTable'
 
 import { Suspense } from 'react'
-import { useSpotPrices } from '@/features/spots/queries'
 import { useAdminPurchaseOrders } from '@/features/orders/purchaseOrders/admin/queries'
 import { useAdminSalesOrders } from '@/features/orders/salesOrders/admin/queries'
 import PurchaseOrdersPage from '@/features/orders/purchaseOrders/admin/AdminPurchaseOrders'
@@ -65,7 +64,6 @@ export default function Page() {
 function AdminShell() {
   const { data: purchaseOrders = [] } = useAdminPurchaseOrders()
   const { data: salesOrders = [] } = useAdminSalesOrders()
-  const { data: spotPrices = [] } = useSpotPrices()
   const { user } = useGetSession()
 
   const currentRole = user?.role ?? 'Admin'
@@ -176,7 +174,7 @@ function AdminShell() {
       default:
         return null
     }
-  }, [selectedKey, spotPrices])
+  }, [selectedKey])
 
   const { activeDrawer, openDrawer, closeDrawer } = useDrawerStore()
 

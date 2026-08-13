@@ -43,7 +43,7 @@ export function TableBase<TData>({
   const orderedColIds = orderedCols.map((c) => c.id)
 
   return (
-    <div className="min-h-[55vh] max-h-[55vh] overflow-y-auto rounded-lg">
+    <div className="flex-1 min-h-0 overflow-y-auto rounded-lg">
       <Table className="w-full">
         {showHeaders ? (
           <TableHeader className="sticky top-0 z-10">

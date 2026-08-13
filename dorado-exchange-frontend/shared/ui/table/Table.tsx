@@ -177,7 +177,7 @@ export function DataTable<TData>({
   return (
     <div
       className={cn(
-        'min-h-[75vh] max-h-[75vh] space-y-4 p-4 rounded-lg custom-scrollbar',
+        'flex flex-col overflow-hidden min-h-[75vh] max-h-[75vh] w-full min-w-0 max-w-full space-y-4 p-4 rounded-lg custom-scrollbar',
         shadowClass,
         wrapperClassName
       )}

@@ -224,7 +224,7 @@ export function SidebarLayout({
   return (
     <div className={cn('flex h-full w-full items-start justify-start gap-6 py-6', className)}>
       <div className="hidden md:block">{Nav}</div>
-      <main className="flex-1">{content}</main>
+      <main className="flex-1 min-w-0">{content}</main>
     </div>
   )
 }

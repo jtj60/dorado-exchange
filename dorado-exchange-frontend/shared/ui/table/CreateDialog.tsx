@@ -65,13 +65,13 @@ export function AddNewDialog({
   className,
   resetOnClose = true,
 }: AddNewDialogProps) {
-  const initialValues = useMemo(() => buildInitialValues(createConfig.fields), [createConfig.fields])
+  // Parents build `createConfig` as a fresh object literal every render, so
+  // `createConfig.fields` is a new reference each time. Key the memo on the
+  // field names (a stable string) so `initialValues` stays referentially
+  // stable across parent re-renders and doesn't wipe in-progress input.
+  const fieldsKey = createConfig.fields.map((f) => f.name).join('|')
+  const initialValues = useMemo(() => buildInitialValues(createConfig.fields), [fieldsKey])
   const [values, setValues] = useState<Record<string, string>>(initialValues)
-
-  // keep initial values in sync if config changes
-  useEffect(() => {
-    setValues(initialValues)
-  }, [initialValues])
 
   // reset when closing (optional)
   useEffect(() => {
