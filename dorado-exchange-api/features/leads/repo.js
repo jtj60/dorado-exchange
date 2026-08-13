@@ -23,8 +23,9 @@ export async function getAllLeads() {
 
 export async function createLead(lead) {
   const query = `
-    INSERT INTO exchange.leads (name, phone, email, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO exchange.leads
+      (name, phone, email, created_by, updated_by, priority, notes, last_contacted)
+    VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'Medium'), $7, NOW())
     RETURNING *;
   `;
   const values = [
@@ -33,6 +34,8 @@ export async function createLead(lead) {
     lead.email,
     lead.created_by,
     lead.updated_by,
+    lead.priority,
+    lead.notes ?? null,
   ];
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -51,8 +54,9 @@ export async function updateLead(lead, user_name) {
         contacted = $7,
         responded = $8,
         contact = $9,
-        notes = $10
-    WHERE id = $11
+        notes = $10,
+        priority = $11
+    WHERE id = $12
     RETURNING *;
   `;
 
@@ -67,6 +71,7 @@ export async function updateLead(lead, user_name) {
     lead.responded,
     lead.contact,
     lead.notes,
+    lead.priority,
     lead.id,
   ];
 

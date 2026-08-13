@@ -11,7 +11,7 @@ import {
   DialogOverlay,
   DialogTitle,
 } from '@/shared/ui/base/dialog'
-import { FloatingLabelInput } from '@/shared/ui/inputs/FloatingLabelInput'
+import { Input } from '@/shared/ui/base/input'
 import { Textarea } from '@/shared/ui/base/textarea'
 import { Rating, RatingButton } from '@/shared/ui/base/rating'
 import formatPhoneNumber from '@/shared/utils/formatPhoneNumber'
@@ -155,7 +155,7 @@ export function AddNewDialog({
                       <label className="block text-xs text-neutral-600 mb-1">{field.label}</label>
                       <div className="relative w-full">
                         <Textarea
-                          className="bg-highest border-border min-h-[80px]"
+                          className="on-glass min-h-[80px]"
                           value={value}
                           onChange={(e) => setValue(field.name, e.target.value)}
                           maxLength={field.maxLength}
@@ -177,33 +177,34 @@ export function AddNewDialog({
                 }
 
                 return (
-                  <div key={field.name} className="relative w-full">
-                    <FloatingLabelInput
-                      label={field.label}
-                      type={field.inputType ?? 'text'}
-                      inputMode={field.inputMode}
-                      autoComplete={field.autoComplete}
-                      size="sm"
-                      className="bg-highest border-border h-10"
-                      maxLength={field.maxLength}
-                      value={value}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        const next = isPhoneField ? formatPhoneNumber(raw) : raw
-                        setValue(field.name, next)
-                      }}
-                    />
-                    {value !== '' && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setValue(field.name, '')}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 text-neutral-600 hover:bg-transparent"
-                        tabIndex={-1}
-                        aria-label={`Clear ${field.label}`}
-                      >
-                        <XIcon size={16} />
-                      </Button>
-                    )}
+                  <div key={field.name} className="w-full">
+                    <label className="block text-xs text-neutral-600 mb-1">{field.label}</label>
+                    <div className="relative w-full">
+                      <Input
+                        type={field.inputType ?? 'text'}
+                        inputMode={field.inputMode}
+                        autoComplete={field.autoComplete}
+                        className="on-glass h-10"
+                        maxLength={field.maxLength}
+                        value={value}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          const next = isPhoneField ? formatPhoneNumber(raw) : raw
+                          setValue(field.name, next)
+                        }}
+                      />
+                      {value !== '' && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setValue(field.name, '')}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 text-neutral-600 hover:bg-transparent"
+                          tabIndex={-1}
+                          aria-label={`Clear ${field.label}`}
+                        >
+                          <XIcon size={16} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )
               })}

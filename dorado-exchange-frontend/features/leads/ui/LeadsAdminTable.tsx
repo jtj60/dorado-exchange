@@ -3,31 +3,23 @@
 import * as React from 'react'
 import type { ColumnDef, Row } from '@tanstack/react-table'
 
-import { Lead } from '@/features/leads/types'
+import { Lead, LeadPriority } from '@/features/leads/types'
+import { PrioritySelect } from '@/features/leads/ui/PrioritySelect'
 import { useGetSession } from '@/features/auth/queries'
-import formatPhoneNumber, { normalizePhone } from '@/shared/utils/formatPhoneNumber'
+import { normalizePhone } from '@/shared/utils/formatPhoneNumber'
 import { useDrawerStore } from '@/shared/store/drawerStore'
 import {
-  CheckIcon,
-  XIcon,
   PlusIcon,
   InfoIcon,
   ChatsCircleIcon,
   CheckCircleIcon,
 } from '@phosphor-icons/react'
-import { TextColumn, IconColumn } from '@/shared/ui/table/Columns'
+import { TextColumn, ChipColumn } from '@/shared/ui/table/Columns'
 import { DataTable } from '@/shared/ui/table/Table'
 import { isValidEmail } from '@/shared/utils/isValid'
 import LeadsDrawer from '@/features/leads/ui/LeadsDrawer'
 import { useCreateLead, useLeads } from '@/features/leads/queries'
 import { CreateConfig } from '@/shared/ui/table/CreateDialog'
-
-const BoolIcon = ({ value }: { value: boolean }) =>
-  value ? (
-    <CheckIcon size={20} className="text-success" />
-  ) : (
-    <XIcon size={20} className="text-destructive" weight="fill" />
-  )
 
 export default function LeadsPage() {
   const { user } = useGetSession()
@@ -70,46 +62,49 @@ export default function LeadsPage() {
       enableHiding: false,
       size: 240,
     }),
-    TextColumn<Lead>({
-      id: 'phone',
-      header: 'Phone',
-      accessorKey: 'phone',
+    ChipColumn<Lead>({
+      id: 'priority',
+      header: 'Priority',
+      accessorKey: 'priority',
       align: 'left',
       enableHiding: true,
-      formatValue: (value) => formatPhoneNumber(String(value ?? '')),
-      size: 180,
+      size: 160,
+      getChip: ({ row }) => {
+        const priority = (row as Lead).priority
+        const className =
+          priority === 'High'
+            ? 'bg-destructive/20 text-destructive border-destructive'
+            : priority === 'Low'
+            ? 'bg-success/20 text-success border-success'
+            : 'bg-primary/20 text-primary border-primary'
+        return { label: priority ?? 'Medium', className }
+      },
     }),
     TextColumn<Lead>({
-      id: 'email',
-      header: 'Email',
-      accessorKey: 'email',
+      id: 'contact',
+      header: 'Point of Contact',
+      accessorKey: 'contact',
       align: 'left',
       enableHiding: true,
-      size: 260,
+      formatValue: (value) => String(value ?? '').trim() || '—',
+      size: 220,
     }),
-    IconColumn<Lead>({
+    ChipColumn<Lead>({
       id: 'contacted',
       header: 'Contacted',
       accessorKey: 'contacted',
-      align: 'center',
-      size: 90,
-      renderIcon: ({ value }) => <BoolIcon value={!!value} />,
-    }),
-    IconColumn<Lead>({
-      id: 'responded',
-      header: 'Responded',
-      accessorKey: 'responded',
-      align: 'center',
-      size: 90,
-      renderIcon: ({ value }) => <BoolIcon value={!!value} />,
-    }),
-    IconColumn<Lead>({
-      id: 'converted',
-      header: 'Converted',
-      accessorKey: 'converted',
-      align: 'center',
-      size: 90,
-      renderIcon: ({ value }) => <BoolIcon value={!!value} />,
+      align: 'left',
+      enableHiding: true,
+      size: 150,
+      getChip: ({ row }) => {
+        const contacted = !!(row as Lead).contacted
+        return {
+          label: contacted ? 'Yes' : 'No',
+          className: contacted
+            ? 'bg-success/20 text-success border-success'
+            : 'bg-destructive/20 text-destructive border-destructive',
+        }
+      },
     }),
   ]
 
@@ -167,6 +162,21 @@ export default function LeadsPage() {
         label: 'Email',
         inputType: 'email',
       },
+      {
+        name: 'priority',
+        label: 'Priority',
+        render: ({ value, setValue }) => (
+          <PrioritySelect
+            value={(value || 'Medium') as LeadPriority}
+            onChange={(v) => setValue('priority', v)}
+          />
+        ),
+      },
+      {
+        name: 'notes',
+        label: 'Notes',
+        multiline: true,
+      },
     ],
     createNew: (values: Record<string, string>) => {
       const name = values.name ?? ''
@@ -180,6 +190,8 @@ export default function LeadsPage() {
         email: email || 'null',
         created_by: user?.name ?? '',
         updated_by: user?.name ?? '',
+        priority: (values.priority as LeadPriority) || 'Medium',
+        notes: values.notes ?? '',
       })
     },
     canSubmit: (values: Record<string, string>) => {

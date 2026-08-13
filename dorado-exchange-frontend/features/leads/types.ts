@@ -1,3 +1,7 @@
+export type LeadPriority = 'High' | 'Medium' | 'Low'
+
+export const LEAD_PRIORITIES: LeadPriority[] = ['High', 'Medium', 'Low']
+
 export interface Lead {
   id: string
   name: string
@@ -13,6 +17,7 @@ export interface Lead {
   responded: boolean
   contact: string
   notes?: string
+  priority: LeadPriority
 }
 
 export interface NewLead {
@@ -21,6 +26,8 @@ export interface NewLead {
   email?: string,
   created_by: string,
   updated_by: string,
+  priority: LeadPriority,
+  notes?: string,
 }
 
 export type LeadCard = 'Converted' | 'Responded' | 'Contacted' | null

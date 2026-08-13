@@ -42,6 +42,17 @@ export function TableBase<TData>({
   const orderedCols = orderSelectFirst(table.getVisibleLeafColumns())
   const orderedColIds = orderedCols.map((c) => c.id)
 
+  // Honor a column's declared `size` as a width so the table doesn't
+  // auto-distribute free space unevenly. Only applied when a size was
+  // explicitly set, so selection/group columns keep their natural width.
+  const widthById = new Map<string, number | undefined>(
+    table.getVisibleLeafColumns().map((c) => [c.id, c.columnDef.size])
+  )
+  const widthStyle = (id: string) => {
+    const w = widthById.get(id)
+    return w != null ? { width: w } : undefined
+  }
+
   return (
     <div className="flex-1 min-h-0 overflow-y-auto rounded-lg">
       <Table className="w-full">
@@ -51,7 +62,11 @@ export function TableBase<TData>({
               {orderedCols.map((col) => {
                 const header = table.getHeaderGroups().at(-1)?.headers.find((h) => h.column.id === col.id)
                 return (
-                  <TableHead key={col.id} className="h-10 text-xs font-normal text-neutral-600">
+                  <TableHead
+                    key={col.id}
+                    className="h-10 text-xs font-normal text-neutral-600"
+                    style={widthStyle(col.id)}
+                  >
                     {header?.isPlaceholder
                       ? null
                       : header
@@ -100,7 +115,7 @@ export function TableBase<TData>({
                 {orderedColIds.map((colId) => {
                   const cell = cellById.get(colId)
                   return (
-                    <TableCell key={colId} className="h-10 py-2 align-middle">
+                    <TableCell key={colId} className="h-10 py-2 align-middle" style={widthStyle(colId)}>
                       {!cell || cell.getIsPlaceholder()
                         ? null
                         : flexRender(cell.column.columnDef.cell, cell.getContext())}

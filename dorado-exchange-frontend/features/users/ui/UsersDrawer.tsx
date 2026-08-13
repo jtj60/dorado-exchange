@@ -43,14 +43,16 @@ export default function AdminUsersDrawer({
         <div className="text-xl text-neutral-900">{user.name}</div>
         <div className="text-base text-neutral-800">{formatFullDate(user.created_at)}</div>
       </div>
-      <div className="separator-inset" />
-      <UserInfo user={user} />
-      <div className="separator-inset" />
-      <DoradoCredit user={user} />
-      <div className="separator-inset" />
-      <UserActions user={user} />
-      <div className="separator-inset" />
-      <UserOrders user={user} />
+      <div className="glass-divider" />
+      <div className="space-y-8">
+        <UserInfo user={user} />
+        <div className="glass-divider" />
+        <DoradoCredit user={user} />
+        <div className="glass-divider" />
+        <UserActions user={user} />
+        <div className="glass-divider" />
+        <UserOrders user={user} />
+      </div>
     </Drawer>
   )
 }
@@ -66,7 +68,7 @@ function UserInfo({ user }: { user: AdminUser }) {
         label="Name"
         type="name"
         autoComplete="name"
-        className="input-floating-label-form w-full"
+        className="on-glass w-full"
         defaultValue={user.name}
         onBlur={(e) => updateName.mutate({ name: e.target.value })}
       />
@@ -74,13 +76,13 @@ function UserInfo({ user }: { user: AdminUser }) {
         label="Email"
         type="email"
         autoComplete="email"
-        className="input-floating-label-form w-full"
+        className="on-glass w-full"
         defaultValue={user.email}
         onBlur={(e) => changeEmail.mutate(e.target.value)}
       />
       <Button
         variant="default"
-        className="w-full bg-primary raised-off-page text-white"
+        className="w-full primary-on-glass"
         disabled={true}
       >
         Upload Identity Images
@@ -160,8 +162,8 @@ function DoradoCredit({ user }: { user: AdminUser }) {
                 htmlFor={m.value}
                 className={cn(
                   'w-full',
-                  'text-sm raised-off-page',
-                  mode === m.value ? 'bg-primary' : 'bg-card hover:bg-card border-none',
+                  'text-sm',
+                  mode === m.value ? 'primary-on-glass' : 'on-glass',
                   'flex items-center justify-center rounded-md cursor-pointer px-2 py-2 transition-colors'
                 )}
               >
@@ -185,7 +187,7 @@ function DoradoCredit({ user }: { user: AdminUser }) {
           value={`$${displayAmount}`}
           onChange={handleAmountChange}
           placeholder="$0.00"
-          className="input-floating-label-form w-full text-right no-spinner text-lg text-neutral-900"
+          className="on-glass w-full text-right no-spinner text-lg text-neutral-900"
         />
       </div>
 
@@ -198,7 +200,7 @@ function DoradoCredit({ user }: { user: AdminUser }) {
 
         <Button
           onClick={handleSubmit}
-          className="bg-primary raised-off-page text-white"
+          className="w-full primary-on-glass"
           disabled={updateCredit.isPending || !amount || wouldBeNegative}
         >
           Update Credit
@@ -222,7 +224,7 @@ function UserActions({ user }: { user: AdminUser }) {
       <div className="section-label mb-2">Actions</div>
       <Button
         variant="default"
-        className="w-full bg-primary raised-off-page text-white"
+        className="w-full primary-on-glass"
         onClick={() => {
           closeDrawer()
           impersonateUser.mutate({ user_id: user.id })
@@ -232,7 +234,7 @@ function UserActions({ user }: { user: AdminUser }) {
       </Button>
       <Button
         variant="default"
-        className="w-full bg-card raised-off-page hover:bg-card"
+        className="w-full on-glass"
         onClick={() => requestPasswordReset.mutate(user?.email ?? '')}
       >
         <div className="text-primary">
@@ -250,7 +252,7 @@ function UserOrders({ user }: { user: AdminUser }) {
       <div className="section-label mb-2">Orders</div>
       <Button
         variant="default"
-        className="w-full bg-primary raised-off-page text-white"
+        className="w-full primary-on-glass"
         onClick={() => {
           setCreateSalesOrderUser(user)
           openDrawer('createSalesOrder')

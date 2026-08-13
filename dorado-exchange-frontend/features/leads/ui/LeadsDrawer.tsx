@@ -6,7 +6,8 @@ import { useMemo, useRef, useState } from 'react'
 
 import { formatFullDate } from '@/shared/utils/formatDates'
 
-import { Lead } from '@/features/leads/types'
+import { Lead, LeadPriority } from '@/features/leads/types'
+import { PrioritySelect } from '@/features/leads/ui/PrioritySelect'
 import { cn } from '@/shared/utils/cn'
 import { Label } from '@/shared/ui/base/label'
 import { Input } from '@/shared/ui/base/input'
@@ -14,7 +15,7 @@ import { Textarea } from '@/shared/ui/base/textarea'
 import { useCreateUser, useGetSession } from '@/features/auth/queries'
 import { DisplayToggle } from '@/shared/ui/DisplayToggle'
 import formatPhoneNumber, { normalizePhone } from '@/shared/utils/formatPhoneNumber'
-import { Calendar } from '@/shared/ui/base/calendar'
+import SchedulePicker from '@/shared/ui/SchedulePicker'
 import { Button } from '@/shared/ui/base/button'
 import { TrashIcon, UserPlusIcon } from '@phosphor-icons/react'
 import { PopoverSelect } from '@/shared/ui/table/PopoverSelect'
@@ -43,14 +44,17 @@ export default function LeadsDrawer({ leads, lead_id }: { leads: Lead[]; lead_id
   return (
     <Drawer open={isDrawerOpen} setOpen={closeDrawer} className="glass-panel">
       <Header lead={lead} />
-      <div className="separator-inset" />
-      <Details lead={lead} />
-      <div className="separator-inset" />
-      <Booleans lead={lead} />
-      <div className="separator-inset" />
-      <Contacted lead={lead} />
-      <div className="separator-inset" />
-      <Actions lead={lead} />
+      <div className="glass-divider" />
+      <div className="space-y-8">
+        <Details lead={lead} />
+        <div className="glass-divider" />
+        <Booleans lead={lead} />
+        <div className="glass-divider" />
+        <Contacted lead={lead} />
+        <div className="glass-divider" />
+        <Actions lead={lead} />
+        <div className="glass-divider" />
+      </div>
     </Drawer>
   )
 }
@@ -95,6 +99,15 @@ function Details({ lead }: { lead: Lead }) {
   return (
     <div className="flex flex-col w-full gap-4">
       <div className="section-label mb-4">Details</div>
+
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs pl-1 font-medium text-neutral-700">Priority</Label>
+        <PrioritySelect
+          value={(lead.priority ?? 'Medium') as LeadPriority}
+          onChange={(v) => handleUpdate({ priority: v })}
+        />
+      </div>
+
       <div className="flex flex-col gap-1">
         <Label htmlFor="name" className="text-xs pl-1 font-medium text-neutral-700">
           Name
@@ -104,7 +117,7 @@ function Details({ lead }: { lead: Lead }) {
           id="name"
           placeholder="Enter name..."
           type="text"
-          className="input-floating-label-form"
+          className="on-glass"
           defaultValue={lead.name ?? ''}
           onBlur={(e) => handleUpdate({ name: e.target.value })}
         />
@@ -121,7 +134,7 @@ function Details({ lead }: { lead: Lead }) {
           type="text"
           inputMode="tel"
           autoComplete="tel"
-          className="input-floating-label-form"
+          className="on-glass"
           defaultValue={formatPhoneNumber(normalizePhone(lead.phone))}
           maxLength={17}
           onChange={(e) => {
@@ -142,9 +155,9 @@ function Details({ lead }: { lead: Lead }) {
 
         <Input
           id="email"
-          placeholder="Enter name..."
+          placeholder="Enter email..."
           type="text"
-          className="input-floating-label-form"
+          className="on-glass"
           defaultValue={lead.email ?? ''}
           onBlur={(e) => handleUpdate({ email: e.target.value })}
         />
@@ -158,7 +171,7 @@ function Details({ lead }: { lead: Lead }) {
           rows={20}
           id="Notes"
           placeholder="Enter lead notes..."
-          className="input-floating-label-form min-w-70"
+          className="on-glass min-w-70"
           defaultValue={lead.notes}
           onBlur={(e) => handleUpdate({ notes: e.target.value })}
         />
@@ -186,18 +199,27 @@ function Booleans({ lead }: { lead: Lead }) {
           value={!!lead.contacted}
           onChange={(v) => handleUpdate({ contacted: v })}
           className="w-full"
+          onClass="success-on-glass rounded-l-lg"
+          offClass="destructive-on-glass rounded-r-lg"
+          inactiveClass="on-glass"
         />
         <DisplayToggle
           label="Responded"
           value={!!lead.responded}
           onChange={(v) => handleUpdate({ responded: v })}
           className="w-full"
+          onClass="success-on-glass rounded-l-lg"
+          offClass="destructive-on-glass rounded-r-lg"
+          inactiveClass="on-glass"
         />
         <DisplayToggle
           label="Converted"
           value={!!lead.converted}
           onChange={(v) => handleUpdate({ converted: v })}
           className="w-full"
+          onClass="success-on-glass rounded-l-lg"
+          offClass="destructive-on-glass rounded-r-lg"
+          inactiveClass="on-glass"
         />
       </div>
     </div>
@@ -214,60 +236,35 @@ function Contacted({ lead }: { lead: Lead }) {
     updateLead.mutate({ lead: updated, user_name: user?.name ?? '' })
   }
 
-  const maxDate = useMemo(() => {
-    const d = new Date()
-    d.setDate(d.getDate())
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
+  // last_contacted is historical, so allow past dates (back to launch) and
+  // disable the future.
+  const maxDate = useMemo(() => new Date(), [])
+  const minDate = useMemo(() => new Date('2025-03-01T00:00:00'), [])
 
-  const minDate = useMemo(() => {
-    const d = new Date('2025-03-01T00:00:00Z')
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
-
-  const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
-  const clampDate = (d: Date, min: Date, max: Date) => (d < min ? min : d > max ? max : d)
-
-  const selectedDate = useMemo<Date>(() => {
-    const raw = lead.last_contacted ? new Date(lead.last_contacted) : maxDate
-    raw.setHours(0, 0, 0, 0)
-    return clampDate(raw, minDate, maxDate)
-  }, [lead.last_contacted, minDate, maxDate])
-
-  const startMonth = useMemo(() => firstOfMonth(minDate), [minDate])
-  const endMonth = useMemo(() => firstOfMonth(maxDate), [maxDate])
+  const lastContacted = lead.last_contacted ? new Date(lead.last_contacted).toISOString() : null
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="section-label">Contact Info</div>
+      <div className="flex flex-col w-full gap-4 items-start">
+        <div className="flex flex-col w-full gap-1">
+          <Label className="text-xs pl-1 font-medium text-neutral-700">Point of Contact</Label>
+          <PopoverSelect
+            value={lead.contact}
+            options={admins?.map((a) => a.name)}
+            onChange={(val) => handleUpdate({ contact: val })}
+            triggerClass="on-glass w-full"
+          />
+        </div>
 
-      <div className="flex flex-col md:flex-row w-full justify-center md:justify-between gap-3 items-start">
-        <PopoverSelect
-          value={lead.contact}
-          options={admins?.map((a) => a.name)}
-          onChange={(val) => handleUpdate({ contact: val })}
-          triggerClass="raised-off-page rounded-lg"
-        />
-
-        <Calendar
-          mode="single"
-          showOutsideDays={false}
-          startMonth={startMonth}
-          endMonth={endMonth}
-          defaultMonth={selectedDate}
-          selected={selectedDate}
-          onSelect={(newDate) => {
-            if (!newDate) return
-            const d = new Date(newDate)
-            d.setHours(0, 0, 0, 0)
-            if (d < minDate || d > maxDate) return
-            handleUpdate({ last_contacted: d })
-          }}
-          className="p-2 bg-card w-full raised-off-page rounded-lg"
-          disabled={[{ before: minDate }, { after: maxDate }]}
-        />
+        <div className="flex flex-col w-full gap-1">
+          <Label className="text-xs pl-1 font-medium text-neutral-700">Last Contacted</Label>
+          <SchedulePicker
+            value={lastContacted}
+            onChange={(iso) => handleUpdate({ last_contacted: iso ? new Date(iso) : null })}
+            minDate={minDate}
+            maxDate={maxDate}
+          />
+        </div>
       </div>
     </div>
   )
@@ -299,7 +296,7 @@ function Actions({ lead }: { lead: Lead }) {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="section-label">Booleans</div>
+      <div className="section-label">Actions</div>
 
       <div className="flex flex-col w-full gap-3">
         <div className="flex flex-col items-start gap-1">
@@ -309,7 +306,7 @@ function Actions({ lead }: { lead: Lead }) {
 
           <Button
             variant="ghost"
-            className="flex items-center w-full gap-3 justify-center text-white hover:text-white bg-success hover:bg-success w-full p-4 raised-off-page"
+            className="flex items-center w-full gap-3 justify-center success-on-glass p-4"
             onClick={handleCreateNewUser}
             disabled={!canCreate}
           >
@@ -329,7 +326,7 @@ function Actions({ lead }: { lead: Lead }) {
             <div className="flex">
               <Button
                 variant="ghost"
-                className="flex items-center w-full gap-3 justify-center text-white hover:text-white bg-destructive hover:bg-destructive w-full p-4 raised-off-page"
+                className="flex items-center w-full gap-3 justify-center destructive-on-glass p-4"
               >
                 <TrashIcon size={18} />
                 Delete Lead

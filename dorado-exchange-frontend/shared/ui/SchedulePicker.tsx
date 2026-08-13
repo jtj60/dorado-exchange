@@ -13,6 +13,7 @@ type Props = {
   value: string | null
   onChange: (iso: string | null) => void
   minDate?: Date
+  maxDate?: Date
 }
 
 function toLocalDateISO(d: Date) {
@@ -53,9 +54,10 @@ function toOffsetISO(d: Date) {
   return format(d, "yyyy-MM-dd'T'HH:mm:ssxxx")
 }
 
-export default function SchedulePicker({ value, onChange, minDate }: Props) {
+export default function SchedulePicker({ value, onChange, minDate, maxDate }: Props) {
   const today = useMemo(() => startOfDay(new Date()), [])
   const min = useMemo(() => startOfDay(minDate ?? today), [minDate, today])
+  const max = useMemo(() => (maxDate ? startOfDay(maxDate) : undefined), [maxDate])
 
   const allTimes = useMemo(() => buildTimes(30), [])
 
@@ -95,7 +97,7 @@ export default function SchedulePicker({ value, onChange, minDate }: Props) {
             selected={selected ?? undefined}
             onSelect={selectDate}
             className="p-2 sm:pe-5 bg-transparent"
-            disabled={[{ before: min }]}
+            disabled={max ? [{ before: min }, { after: max }] : [{ before: min }]}
           />
         </div>
 

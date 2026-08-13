@@ -29,7 +29,7 @@ import {
   usePrevAuctionCurrentLot,
   useSetAuctionCurrentLot,
 } from '@/features/auctions/queries'
-import SchedulePicker from '@/features/auctions/ui/SchedulePicker'
+import SchedulePicker from '@/shared/ui/SchedulePicker'
 import { useAdminProducts } from '@/features/products/queries'
 import { useSpotPrices } from '@/features/spots/queries'
 import QuantityBar from '@/features/products/ui/QuantityInput'
