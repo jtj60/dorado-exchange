@@ -17,7 +17,6 @@ type DrawerName =
   | 'accountSidebar'
   | 'carriers'
   | 'carrierServices'
-  | 'auctions'
   | null
 
 type DrawerPayloads = {
