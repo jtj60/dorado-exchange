@@ -1,4 +1,4 @@
-import pool from "#db";
+import withTransaction from "#shared/db/withTransaction.js";
 import * as purchaseOrderRepo from "#features/purchase-orders/repo.js";
 import * as scrapRepo from "#features/scrap/repo.js";
 import * as transactionRepo from "#features/transactions/repo.js";
@@ -33,70 +33,38 @@ export async function getMetalsForOrder(orderId) {
 }
 
 export async function acceptOffer({ order, order_spots, spot_prices }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    let updatedSpots = order.spots_locked
+  const updatedSpots = await withTransaction(async (client) => {
+    const spots = order.spots_locked
       ? order_spots
-      : await purchaseOrderRepo.updateOrderMetals(
-          order.id,
-          spot_prices,
-          client
-        );
+      : await purchaseOrderRepo.updateOrderMetals(order.id, spot_prices, client);
 
-    await purchaseOrderRepo.updateRefinerMetals(order.id, updatedSpots, client);
+    await purchaseOrderRepo.updateRefinerMetals(order.id, spots, client);
 
     await purchaseOrderRepo.updateOrderItemPrices(
       order.id,
       order.order_items,
-      updatedSpots,
+      spots,
       client
     );
 
-    const total = calculateTotalPrice(order, updatedSpots);
+    const total = calculateTotalPrice(order, spots);
     await purchaseOrderRepo.moveOrderToAccepted(order.id, total, client);
 
-    await client.query("COMMIT");
-    const purchaseOrder = await getById(order.id);
-    return { purchaseOrder, orderSpots: updatedSpots };
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+    return spots;
+  });
+
+  const purchaseOrder = await getById(order.id);
+  return { purchaseOrder, orderSpots: updatedSpots };
 }
 
 export async function rejectOffer({ orderId, offerNotes }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    await getById(orderId);
-
-    const updatedOrder = await purchaseOrderRepo.rejectOfferById(
-      orderId,
-      offerNotes,
-      client
-    );
-
-    await client.query("COMMIT");
-    return updatedOrder;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  return withTransaction((client) =>
+    purchaseOrderRepo.rejectOfferById(orderId, offerNotes, client)
+  );
 }
 
 export async function cancelOrder({ order, return_shipment }) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     const updatedOrder = await purchaseOrderRepo.cancelOrderById(
       order.id,
       client
@@ -164,15 +132,8 @@ export async function cancelOrder({ order, return_shipment }) {
       client
     );
 
-    await client.query("COMMIT");
-
     return { updatedOrder, returnShipment: updatedShipment };
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function updateOfferNotes({ order, offer_notes }) {
@@ -184,11 +145,7 @@ export async function createReview({ order }) {
 }
 
 export async function createPurchaseOrder(purchase_order, user_id) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  const order_id = await withTransaction(async (client) => {
     const order_id = await purchaseOrderRepo.insertOrder(client, {
       userId: user_id,
       addressId: purchase_order.address.id,
@@ -309,95 +266,61 @@ export async function createPurchaseOrder(purchase_order, user_id) {
       );
     }
 
-    await client.query("COMMIT");
+    return order_id;
+  });
 
-    return await purchaseOrderRepo.findById(order_id);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  return await purchaseOrderRepo.findById(order_id);
+}
+
+// A locked-spot offer holds its quoted prices for 24h; an unlocked one floats
+// with spot and gets a week.
+function offerWindow(order) {
+  const now = new Date();
+  const hours = order.spots_locked ? 24 : 7 * 24;
+  return { sentAt: now, expiresAt: new Date(now.getTime() + hours * 3600 * 1000) };
+}
+
+// Clearing prices and the order total invalidates the previous quote, so both
+// offer transitions below re-open the offer from a clean slate.
+async function reissueOffer(order, resolveStatus) {
+  return withTransaction(async (client) => {
+    await purchaseOrderRepo.clearItemPrices(client, order.id);
+    await purchaseOrderRepo.resetOrderTotal(client, order.id);
+
+    const updated = await purchaseOrderRepo.updateOffer(client, {
+      orderId: order.id,
+      ...resolveStatus(order, offerWindow(order)),
+    });
+
+    if (!updated) {
+      const e = new Error("Purchase Order not found");
+      e.status = 404;
+      throw e;
+    }
+
+    return updated;
+  });
 }
 
 export async function sendOffer({ order, user_name }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    await purchaseOrderRepo.clearItemPrices(client, order.id);
-    await purchaseOrderRepo.resetOrderTotal(client, order.id);
-
-    const now = new Date();
-    const sentAt = now;
-    const expiresAt = order.spots_locked
-      ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
-      : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const updated = await purchaseOrderRepo.updateOffer(client, {
-      orderId: order.id,
-      sentAt,
-      expiresAt,
-      offerStatus: "Sent",
-      updated_by: user_name,
-    });
-
-    if (!updated) {
-      await client.query("ROLLBACK");
-      const e = new Error("Purchase Order not found");
-      e.status = 404;
-      throw e;
-    }
-
-    await client.query("COMMIT");
-
-    return updated;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  return reissueOffer(order, (_order, { sentAt, expiresAt }) => ({
+    sentAt,
+    expiresAt,
+    offerStatus: "Sent",
+    updated_by: user_name,
+  }));
 }
 
-export async function updateRejectedOffer({ order, order_status, user_name }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    await purchaseOrderRepo.clearItemPrices(client, order.id);
-    await purchaseOrderRepo.resetOrderTotal(client, order.id);
-
-    const now = new Date();
-    const sentAt = now;
-    const expiresAt = order.spots_locked
-      ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
-      : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const updated = await purchaseOrderRepo.updateOffer(client, {
-      orderId: order.id,
-      sentAt: order.offer_status === "Resent" ? null : sentAt,
-      expiresAt: order.offer_status === "Resent" ? null : expiresAt,
-      offerStatus: order.offer_status === "Resent" ? "Rejected" : "Resent",
+export async function updateRejectedOffer({ order, user_name }) {
+  return reissueOffer(order, (o, { sentAt, expiresAt }) => {
+    const wasResent = o.offer_status === "Resent";
+    return {
+      sentAt: wasResent ? null : sentAt,
+      expiresAt: wasResent ? null : expiresAt,
+      offerStatus: wasResent ? "Rejected" : "Resent",
       updated_by: user_name,
-    });
-
-    if (!updated) {
-      await client.query("ROLLBACK");
-      const e = new Error("Purchase Order not found");
-      e.status = 404;
-      throw e;
-    }
-
-    await client.query("COMMIT");
-
-    return updated;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+    };
+  });
 }
 
 export async function updateStatus({ order, order_status, user_name }) {
@@ -409,50 +332,21 @@ export async function updateSpot({ spot, updated_spot }) {
 }
 
 export async function lockSpots({ spots, purchase_order_id }) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     await purchaseOrderRepo.toggleSpots(true, purchase_order_id, client);
-    const updated = await purchaseOrderRepo.updateOrderMetals(
+    return await purchaseOrderRepo.updateOrderMetals(
       purchase_order_id,
       spots,
       client
     );
-
-    await client.query("COMMIT");
-
-    return updated;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function unlockSpots({ purchase_order_id }) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     await purchaseOrderRepo.toggleSpots(false, purchase_order_id, client);
-    const updated = await purchaseOrderRepo.clearOrderMetals(
-      purchase_order_id,
-      client
-    );
-
-    await client.query("COMMIT");
-
-    return updated;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+    return await purchaseOrderRepo.clearOrderMetals(purchase_order_id, client);
+  });
 }
 
 export async function toggleOrderItemStatus({
@@ -513,10 +407,7 @@ export async function retierOrderScrapPremiums(orderId, executor) {
 }
 
 export async function createOrderItem({ item, purchase_order_id }) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
+  return withTransaction(async (client) => {
     let scrap_id = null;
     if (!item?.id) {
       scrap_id = await scrapRepo.createNewItem(item, client);
@@ -533,15 +424,8 @@ export async function createOrderItem({ item, purchase_order_id }) {
     // order so it matches customer checkout (per-metal order total).
     await retierOrderScrapPremiums(purchase_order_id, client);
 
-    await client.query("COMMIT");
-
     return updated;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function updateBullion({ item }) {
@@ -552,11 +436,15 @@ export async function expireStaleOffers() {
   const expiredOrders = await purchaseOrderRepo.findExpiredOffers();
 
   for (const order of expiredOrders) {
-    const client = await pool.connect();
     try {
-      await client.query("BEGIN");
+      // A locked-spot offer that lapses gets unlocked and re-sent on the
+      // floating 7-day window; an unlocked one is accepted at current spot.
+      if (!order.spots_locked) {
+        await autoAcceptOrder(order.id);
+        continue;
+      }
 
-      if (order.spots_locked) {
+      await withTransaction(async (client) => {
         const newSentAt = new Date();
         const newExpiresAt = new Date(
           newSentAt.getTime() + 7 * 24 * 60 * 60 * 1000
@@ -573,55 +461,42 @@ export async function expireStaleOffers() {
         });
 
         await purchaseOrderRepo.clearOrderMetals(order.id, client);
-      } else {
-        await autoAcceptOrder(order.id);
-      }
-
-      await client.query("COMMIT");
+      });
     } catch (err) {
-      await client.query("ROLLBACK");
       console.error("[CRON] Error expiring offer:", order.id, err);
-    } finally {
-      client.release();
     }
   }
 }
 
 export async function autoAcceptOrder(orderId) {
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    await withTransaction(async (client) => {
+      const spotPrices = await purchaseOrderRepo.getCurrentSpotPrices(client);
 
-    const spotPrices = await purchaseOrderRepo.getCurrentSpotPrices(client);
+      const updatedSpots = await purchaseOrderRepo.updateOrderMetals(
+        orderId,
+        spotPrices,
+        client
+      );
 
-    const updatedSpots = await purchaseOrderRepo.updateOrderMetals(
-      orderId,
-      spotPrices,
-      client
-    );
+      await purchaseOrderRepo.updateRefinerMetals(orderId, updatedSpots, client);
 
-    await purchaseOrderRepo.updateRefinerMetals(orderId, updatedSpots, client);
+      const order = await purchaseOrderRepo.findById(orderId, client);
 
-    const order = await purchaseOrderRepo.findById(orderId, client);
+      await purchaseOrderRepo.updateOrderItemPrices(
+        orderId,
+        order.order_items,
+        updatedSpots,
+        client
+      );
 
-    await purchaseOrderRepo.updateOrderItemPrices(
-      orderId,
-      order.order_items,
-      updatedSpots,
-      client
-    );
+      const total = calculateTotalPrice(order, updatedSpots);
 
-    const total = calculateTotalPrice(order, updatedSpots);
-
-    await purchaseOrderRepo.moveOrderToAccepted(orderId, total, client);
-
-    await client.query("COMMIT");
+      await purchaseOrderRepo.moveOrderToAccepted(orderId, total, client);
+    });
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("[CRON] Failed to auto-accept order", orderId, err);
     throw err;
-  } finally {
-    client.release();
   }
 }
 
@@ -634,26 +509,21 @@ export async function editPayoutCharge({ order_id, payout_charge }) {
 }
 
 export async function addFundsToAccount({ order, spots }) {
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-
-    await transactionRepo.addFunds(order.user_id, order.total_price, client);
-    await transactionRepo.addTransactionLog(
-      order.user_id,
-      "Credit",
-      order.id,
-      null,
-      calculateTotalPrice(order, spots),
-      client
-    );
-    await client.query("COMMIT");
+    await withTransaction(async (client) => {
+      await transactionRepo.addFunds(order.user_id, order.total_price, client);
+      await transactionRepo.addTransactionLog(
+        order.user_id,
+        "Credit",
+        order.id,
+        null,
+        calculateTotalPrice(order, spots),
+        client
+      );
+    });
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("Failed to move payments", order.id, err);
     throw err;
-  } finally {
-    client.release();
   }
 }
 

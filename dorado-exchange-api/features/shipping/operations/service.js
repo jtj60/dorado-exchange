@@ -1,4 +1,4 @@
-import pool from "#db";
+import withTransaction from "#shared/db/withTransaction.js";
 import * as shipmentRepo from "#features/shipping/shipments/repo.js";
 import * as trackingRepo from "#features/shipping/tracking/repo.js";
 import * as pickupRepo from "#features/shipping/pickups/repo.js";
@@ -6,40 +6,25 @@ import * as shippingHandler from "#features/shipping/operations/handler.js";
 import { FEDEX_STORE_ADDRESS, DORADO_ADDRESS } from "#providers/fedex/constants.js";
 
 export async function cancelLabel({ shipment_id, carrier_id }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     const shipment = await shipmentRepo.getById(shipment_id, client);
 
     await shippingHandler.cancelLabel(carrier_id, client, {
       trackingNumber: shipment.tracking_number,
     });
 
-    const updated = await shipmentRepo.update(
+    return await shipmentRepo.update(
       {
         ...shipment,
         shipping_status: "Cancelled",
       },
       client
     );
-
-    await client.query("COMMIT");
-    return updated;
-  } catch (e) {
-    await client.query("ROLLBACK");
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function getTracking(shipment_id) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     const shipment = await shipmentRepo.getById(shipment_id, client);
 
     const trackingInfo = await shippingHandler.getTracking(
@@ -66,14 +51,8 @@ export async function getTracking(shipment_id) {
       client
     );
 
-    await client.query("COMMIT");
     return await trackingRepo.getEvents(shipment_id, client);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function getRates({
@@ -114,10 +93,7 @@ export async function getRates({
 }
 
 export async function cancelPickup({ pickup_id, carrier_id }) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     const pickup = await pickupRepo.getById(pickup_id, client);
 
     await shippingHandler.cancelPickup(carrier_id, client, {
@@ -126,20 +102,12 @@ export async function cancelPickup({ pickup_id, carrier_id }) {
       location: pickup.location,
     });
 
-    const updated = await pickupRepo.update(
+    return await pickupRepo.update(
       {
         ...pickup,
         status: "cancelled",
       },
       client
     );
-
-    await client.query("COMMIT");
-    return updated;
-  } catch (e) {
-    await client.query("ROLLBACK");
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
 }

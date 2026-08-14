@@ -1,4 +1,4 @@
-import pool from "#db";
+import withTransaction from "#shared/db/withTransaction.js";
 import { auth } from "#features/auth/client.js";
 import { fromNodeHeaders } from "better-auth/node";
 
@@ -48,11 +48,7 @@ export async function createSalesOrder(
     serverItems,
     spot_prices
   );
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  const orderId = await withTransaction(async (client) => {
     const orderPrices = calculateSalesOrderTotal(
       items,
       sales_order.using_funds,
@@ -98,15 +94,11 @@ export async function createSalesOrder(
     if (orderPrices.post_charges_amount > 0) {
       await stripeRepo.attachOrder(payment_intent_id, null, orderId, client);
     }
-    await client.query("COMMIT");
 
-    return await getById(orderId);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+    return orderId;
+  });
+
+  return await getById(orderId);
 }
 
 export async function adminCreateSalesOrder({
@@ -124,11 +116,7 @@ export async function adminCreateSalesOrder({
     serverItems,
     spot_prices
   );
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
+  const orderId = await withTransaction(async (client) => {
     const orderPrices = calculateSalesOrderTotal(
       items,
       sales_order.using_funds,
@@ -174,15 +162,11 @@ export async function adminCreateSalesOrder({
     if (orderPrices.post_charges_amount > 0) {
       await stripeRepo.attachOrder(payment_intent_id, null, orderId, client);
     }
-    await client.query("COMMIT");
 
-    return await getById(orderId);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+    return orderId;
+  });
+
+  return await getById(orderId);
 }
 
 export async function updateStatus({ order, order_status, user_name }) {
@@ -190,14 +174,10 @@ export async function updateStatus({ order, order_status, user_name }) {
 }
 
 export async function sendOrderToSupplier({ order, spots, supplier_id }) {
-  const client = await pool.connect();
-
   const sales_order = await getById(order.id);
   const supplier = await supplierRepo.getSupplierFromId(supplier_id);
 
-  try {
-    await client.query("BEGIN");
-
+  await withTransaction(async (client) => {
     await emailService.sendSalesOrderToSupplier(
       sales_order,
       spots,
@@ -210,18 +190,15 @@ export async function sendOrderToSupplier({ order, spots, supplier_id }) {
       client
     );
 
-    await shipmentRepo.create(null, sales_order.id, null, 'Outbound')
+    await shipmentRepo.create(
+      { sales_order_id: sales_order.id, type: "Outbound" },
+      client
+    );
 
     await salesOrderRepo.updateOrderSent(sales_order.id, client);
+  });
 
-    await client.query("COMMIT");
-    return await getById(sales_order.id);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  return await getById(sales_order.id);
 }
 
 export async function updateTracking({
