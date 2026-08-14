@@ -1,120 +1,59 @@
 import pool from "#db";
 import { calculateItemPrice } from '#features/purchase-orders/utils/calculations.js';
 
-export async function findAllByUser(userId) {
-  const query = `
-    SELECT 
-      po.*,
-      json_agg(DISTINCT jsonb_build_object(
-        'id', poi.id,
-        'purchase_order_id', poi.purchase_order_id,
-        'price', poi.price,
-        'quantity', poi.quantity,
-        'confirmed', poi.confirmed,
-        'premium', poi.premium,
-        'refiner_premium', poi.refiner_premium,
-        'item_type', CASE 
-          WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
-          WHEN poi.product_id IS NOT NULL THEN 'product'
-          ELSE 'unknown'
-        END,
-        'scrap', jsonb_build_object(
-          'id', s.id,
-          'pre_melt', s.pre_melt,
-          'post_melt', s.post_melt,
-          'purity', s.purity,
-          'content', s.content,
-          'gross_unit', s.gross_unit,
-          'metal', ms.type,
-          'bid_premium', s.bid_premium
-        ),
-        'product', jsonb_build_object(
-          'id', p.id,
-          'product_name', p.product_name,
-          'content', p.content,
-          'product_type', p.product_type,
-          'image_front', p.image_front,
-          'image_back', p.image_back,
-          'bid_premium', p.bid_premium,
-          'ask_premium', p.ask_premium,
-          'variant_group', p.variant_group,
-          'shadow_offset', p.shadow_offset,
-          'metal_type', mp.type
-        )
-      )) AS order_items,
-        to_jsonb(addr) AS address,
-       jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
-      to_jsonb(cp) AS carrier_pickup,
-      to_jsonb(pay) AS payout,
-      jsonb_build_object(
-        'user_id', u.id,
-        'user_name', u.name,
-        'user_email', u.email
-      ) AS "user"
-    FROM exchange.purchase_orders po
-    LEFT JOIN exchange.purchase_order_items poi ON poi.purchase_order_id = po.id
-    LEFT JOIN exchange.scrap s ON poi.scrap_id = s.id
-    LEFT JOIN exchange.products p ON poi.product_id = p.id
-    LEFT JOIN exchange.metals ms ON s.metal_id = ms.id
-    LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
-    LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
-    LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
-    LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
-    LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
-    LEFT JOIN exchange.users u ON u.id = po.user_id
-    WHERE po.user_id = $1
-    GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-    ORDER BY po.created_at DESC;
-  `;
-  const { rows } = await pool.query(query, [userId]);
-  return rows;
-}
+// The three order lookups below differ only in how they select rows, so the
+// projection and joins are built once here. They previously existed as three
+// near-identical 110-line queries that had already drifted apart.
 
-export async function findById(id) {
-  const query = `
-    SELECT 
+// Shipments are joined twice per order (inbound and return), so the same
+// projection is emitted for each alias.
+const shipmentJson = (alias) => `
+      jsonb_build_object(
+        'id', ${alias}.id,
+        'purchase_order_id', ${alias}.purchase_order_id,
+        'sales_order_id', ${alias}.sales_order_id,
+        'tracking_number', ${alias}.tracking_number,
+        'shipping_status', ${alias}.shipping_status,
+        'estimated_delivery', ${alias}.estimated_delivery,
+        'shipped_at', ${alias}.shipped_at,
+        'delivered_at', ${alias}.delivered_at,
+        'created_at', ${alias}.created_at,
+        'label_type', ${alias}.label_type,
+        'pickup_type', ${alias}.pickup_type,
+        'package', ${alias}.package,
+        'shipping_label', encode(${alias}.shipping_label, 'base64'),
+        'shipping_charge', ${alias}.net_charge,
+        'shipping_service', ${alias}.service_type,
+        'insured', ${alias}.insured,
+        'declared_value', ${alias}.declared_value,
+        'type', ${alias}.type,
+        'carrier_id', ${alias}.carrier_id
+      )`;
+
+// The post-melt assay figures are admin-only, so customer-facing lookups omit
+// them. Only the admin getAll() query passes withActuals.
+const scrapJson = (withActuals) => `
+        jsonb_build_object(
+          'id', s.id,
+          'pre_melt', s.pre_melt,
+          'post_melt', s.post_melt,
+          'purity', s.purity,
+          'content', s.content,
+          'gross_unit', s.gross_unit,
+          'metal', ms.type,
+          'bid_premium', s.bid_premium${
+            withActuals
+              ? `,
+          'purity_actual', s.purity_actual,
+          'post_melt_actual', s.post_melt_actual,
+          'content_actual', s.content_actual`
+              : ""
+          }
+        )`;
+
+function buildOrderQuery({ where = "", limit = "", withActuals = false } = {}) {
+  return `
+    SELECT
       po.*,
       json_agg(DISTINCT jsonb_build_object(
         'id', poi.id,
@@ -124,21 +63,12 @@ export async function findById(id) {
         'confirmed', poi.confirmed,
         'premium', poi.premium,
         'refiner_premium', poi.refiner_premium,
-        'item_type', CASE 
+        'item_type', CASE
           WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
           WHEN poi.product_id IS NOT NULL THEN 'product'
           ELSE 'unknown'
         END,
-        'scrap', jsonb_build_object(
-          'id', s.id,
-          'pre_melt', s.pre_melt,
-          'post_melt', s.post_melt,
-          'purity', s.purity,
-          'content', s.content,
-          'gross_unit', s.gross_unit,
-          'metal', ms.type,
-          'bid_premium', s.bid_premium
-        ),
+        'scrap', ${scrapJson(withActuals)},
         'product', jsonb_build_object(
           'id', p.id,
           'product_name', p.product_name,
@@ -154,48 +84,8 @@ export async function findById(id) {
         )
       )) AS order_items,
       to_jsonb(addr) AS address,
-      jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
+      ${shipmentJson("ship")} AS shipment,
+      ${shipmentJson("ret")} AS return_shipment,
       to_jsonb(cp) AS carrier_pickup,
       to_jsonb(pay) AS payout,
       jsonb_build_object(
@@ -215,126 +105,30 @@ export async function findById(id) {
     LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
     LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
     LEFT JOIN exchange.users u ON u.id = po.user_id
-    WHERE po.id = $1
+    ${where}
     GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-    ORDER BY po.created_at DESC
-    LIMIT 1;
+    ORDER BY po.created_at DESC${limit};
   `;
-  const { rows } = await pool.query(query, [id]);
+}
+
+export async function findAllByUser(userId) {
+  const { rows } = await pool.query(
+    buildOrderQuery({ where: "WHERE po.user_id = $1" }),
+    [userId]
+  );
+  return rows;
+}
+
+export async function findById(id) {
+  const { rows } = await pool.query(
+    buildOrderQuery({ where: "WHERE po.id = $1", limit: "\n    LIMIT 1" }),
+    [id]
+  );
   return rows[0] || null;
 }
 
 export async function getAll() {
-  const query = `
-      SELECT 
-        po.*,
-        json_agg(DISTINCT jsonb_build_object(
-          'id', poi.id,
-          'purchase_order_id', poi.purchase_order_id,
-          'price', poi.price,
-          'quantity', poi.quantity,
-          'confirmed', poi.confirmed,
-          'premium', poi.premium,
-          'refiner_premium', poi.refiner_premium,
-          'item_type', CASE 
-            WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
-            WHEN poi.product_id IS NOT NULL THEN 'product'
-            ELSE 'unknown'
-          END,
-          'scrap', jsonb_build_object(
-            'id', s.id,
-            'pre_melt', s.pre_melt,
-            'post_melt', s.post_melt,
-            'purity', s.purity,
-            'content', s.content,
-            'gross_unit', s.gross_unit,
-            'metal', ms.type,
-            'bid_premium', s.bid_premium,
-            'purity_actual', s.purity_actual,
-            'post_melt_actual', s.post_melt_actual,
-            'content_actual', s.content_actual
-          ),
-          'product', jsonb_build_object(
-            'id', p.id,
-            'product_name', p.product_name,
-            'content', p.content,
-            'product_type', p.product_type,
-            'image_front', p.image_front,
-            'image_back', p.image_back,
-            'bid_premium', p.bid_premium,
-            'ask_premium', p.ask_premium,
-            'variant_group', p.variant_group,
-            'shadow_offset', p.shadow_offset,
-            'metal_type', mp.type
-          )
-        )) AS order_items,
-        to_jsonb(addr) AS address,
-      jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
-      to_jsonb(cp) AS carrier_pickup,
-      to_jsonb(pay) AS payout,
-      jsonb_build_object(
-        'user_id', u.id,
-        'user_name', u.name,
-        'user_email', u.email
-      ) AS "user"
-    FROM exchange.purchase_orders po
-    LEFT JOIN exchange.purchase_order_items poi ON poi.purchase_order_id = po.id
-    LEFT JOIN exchange.scrap s ON poi.scrap_id = s.id
-    LEFT JOIN exchange.products p ON poi.product_id = p.id
-    LEFT JOIN exchange.metals ms ON s.metal_id = ms.id
-    LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
-    LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
-    LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
-      LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
-      LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
-      LEFT JOIN exchange.users u ON u.id = po.user_id
-      GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-      ORDER BY po.created_at DESC;
-    `;
-
-  const { rows } = await pool.query(query, []);
+  const { rows } = await pool.query(buildOrderQuery({ withActuals: true }), []);
   return rows;
 }
 
