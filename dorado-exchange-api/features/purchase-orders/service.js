@@ -10,7 +10,11 @@ import * as shipmentRepo from "#features/shipping/shipments/repo.js";
 import * as pickupRepo from "#features/shipping/pickups/repo.js";
 import * as shippingOps from "#features/shipping/operations/handler.js";
 
-import { DORADO_ADDRESS, FEDEX_STORE_ADDRESS } from "#providers/fedex/constants.js";
+import {
+  DORADO_ADDRESS,
+  FEDEX_STORE_ADDRESS,
+  FEDEX_CARRIER_ID,
+} from "#providers/fedex/constants.js";
 
 export async function listOrdersForUser(userId) {
   return purchaseOrderRepo.findAllByUser(userId);
@@ -103,7 +107,7 @@ export async function cancelOrder({ order, return_shipment }) {
       {
         purchase_order_id: order.id,
         // carrier_id: order.carrier.id,
-        carrier_id: "30179428-b311-4873-8d08-382901c581d8",
+        carrier_id: FEDEX_CARRIER_ID,
         type: "Return",
       },
       client
@@ -141,7 +145,7 @@ export async function cancelOrder({ order, return_shipment }) {
 
     const labelBuffer = Buffer.from(labelData.labelFile, "base64");
 
-    const updatedShipment = await shipmentService.update(
+    const updatedShipment = await shipmentRepo.update(
       {
         ...shipment,
         tracking_number: labelData.tracking_number,
@@ -171,7 +175,7 @@ export async function cancelOrder({ order, return_shipment }) {
   }
 }
 
-export async function updateOfferNotes(order, offer_notes) {
+export async function updateOfferNotes({ order, offer_notes }) {
   return purchaseOrderRepo.updateOfferNotes(order, offer_notes);
 }
 
@@ -211,7 +215,7 @@ export async function createPurchaseOrder(purchase_order, user_id) {
       {
         purchase_order_id: order_id,
         // carrier_id: purchase_order.carrier.id,
-        carrier_id: "30179428-b311-4873-8d08-382901c581d8",
+        carrier_id: FEDEX_CARRIER_ID,
         type: "Inbound",
       },
       client
@@ -235,7 +239,7 @@ export async function createPurchaseOrder(purchase_order, user_id) {
 
     const labelData = await shippingOps.createLabel(
       // purchase_order.carrier.id,
-      "30179428-b311-4873-8d08-382901c581d8",
+      FEDEX_CARRIER_ID,
       client,
       {
         shipper,
@@ -258,7 +262,7 @@ export async function createPurchaseOrder(purchase_order, user_id) {
       {
         ...shipment,
         tracking_number: labelData.tracking_number,
-        carrier_id: "30179428-b311-4873-8d08-382901c581d8",
+        carrier_id: FEDEX_CARRIER_ID,
         shipping_status: "Label Created",
         shipping_label: buffer,
         label_type: "Generated",
@@ -279,8 +283,8 @@ export async function createPurchaseOrder(purchase_order, user_id) {
         client,
         {
           pickupContact: {
-            personName: addr.name,
-            phoneNumber: addr.phone_number,
+            personName: purchase_order.address.name,
+            phoneNumber: purchase_order.address.phone_number,
           },
           pickupAddress: purchase_order.address,
           pickupDate: purchase_order.pickup.date,
@@ -411,7 +415,7 @@ export async function lockSpots({ spots, purchase_order_id }) {
     await client.query("BEGIN");
 
     await purchaseOrderRepo.toggleSpots(true, purchase_order_id, client);
-    const updated = purchaseOrderRepo.updateOrderMetals(
+    const updated = await purchaseOrderRepo.updateOrderMetals(
       purchase_order_id,
       spots,
       client
@@ -435,7 +439,7 @@ export async function unlockSpots({ purchase_order_id }) {
     await client.query("BEGIN");
 
     await purchaseOrderRepo.toggleSpots(false, purchase_order_id, client);
-    const updated = purchaseOrderRepo.clearOrderMetals(
+    const updated = await purchaseOrderRepo.clearOrderMetals(
       purchase_order_id,
       client
     );
@@ -596,7 +600,7 @@ export async function autoAcceptOrder(orderId) {
       client
     );
 
-    await purchaseOrderRepo.updateRefinerMetals(order.id, updatedSpots, client);
+    await purchaseOrderRepo.updateRefinerMetals(orderId, updatedSpots, client);
 
     const order = await purchaseOrderRepo.findById(orderId, client);
 
@@ -632,6 +636,8 @@ export async function editPayoutCharge({ order_id, payout_charge }) {
 export async function addFundsToAccount({ order, spots }) {
   const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     await transactionRepo.addFunds(order.user_id, order.total_price, client);
     await transactionRepo.addTransactionLog(
       order.user_id,

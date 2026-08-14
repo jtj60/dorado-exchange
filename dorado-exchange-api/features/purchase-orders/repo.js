@@ -100,7 +100,7 @@ export async function findAllByUser(userId) {
     LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
     LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
     LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
+    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
     LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
     LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
     LEFT JOIN exchange.users u ON u.id = po.user_id
@@ -211,7 +211,7 @@ export async function findById(id) {
     LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
     LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
     LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
+    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
     LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
     LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
     LEFT JOIN exchange.users u ON u.id = po.user_id
@@ -326,7 +326,7 @@ export async function getAll() {
     LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
     LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
     LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
+    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
       LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
       LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
       LEFT JOIN exchange.users u ON u.id = po.user_id

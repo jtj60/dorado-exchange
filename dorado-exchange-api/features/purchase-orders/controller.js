@@ -73,7 +73,7 @@ export const sendOffer = asyncHandler(async (req, res) => {
 });
 
 export const updateRejectedOffer = asyncHandler(async (req, res) => {
-  await purchaseOrderService.sendOffer(req.body);
+  await purchaseOrderService.updateRejectedOffer(req.body);
   const updated = await purchaseOrderService.updateStatus(req.body);
   return res.status(200).json(updated);
 });
@@ -170,16 +170,6 @@ export const getPurchaseOrderRefinerMetals = asyncHandler(async (req, res) => {
   const { purchase_order_id } = req.body;
   const metals = await purchaseOrderService.getRefinerMetalsForOrder(purchase_order_id);
   return res.json(metals);
-});
-
-export const updateRefinerScrapPercentage = asyncHandler(async (req, res) => {
-  const updated = await purchaseOrderService.updateRefinerScrap(req.body);
-  return res.status(200).json({ updated });
-});
-
-export const resetRefinerScrapPercentage = asyncHandler(async (req, res) => {
-  const updated = await purchaseOrderService.resetRefinerScrap(req.body);
-  return res.status(200).json({ updated });
 });
 
 export const updateRefinerSpot = asyncHandler(async (req, res) => {
