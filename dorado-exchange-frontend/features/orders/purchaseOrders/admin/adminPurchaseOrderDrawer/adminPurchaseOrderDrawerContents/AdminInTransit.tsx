@@ -18,9 +18,9 @@ export default function AdminInTransitPurchaseOrder({ order }: PurchaseOrderDraw
     carrier_id: order.shipment.carrier_id,
   })
 
-  const color = statusConfig[order.purchase_order_status]?.text_color
-  const baseBg = statusConfig[order.purchase_order_status]?.background_color
-  const border = statusConfig[order.purchase_order_status]?.border_color
+  const color = 'text-primary'
+  const baseBg = 'bg-primary'
+  const border = 'border-primary'
   console.log(order.shipment)
   return (
     <>

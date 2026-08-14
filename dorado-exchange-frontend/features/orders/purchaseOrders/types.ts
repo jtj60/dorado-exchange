@@ -118,116 +118,44 @@ export const PurchaseOrderStatuses = [
 ]
 
 export type StatusConfigEntry = {
-  text_color: string
-  background_color: string
-  muted_bg: string
-  hover_background_color: string
-  muted_color: string
-  border_color: string
-  stroke_color: string
   icon: LucideIcon
   value_label: string
-  gradient: string
 }
 
 export type StatusConfig = Record<string, StatusConfigEntry>
 
 export const statusConfig: StatusConfig = {
   'In Transit': {
-    background_color: 'bg-cyan-300',
-    muted_bg: "bg-cyan-300/20",
-    hover_background_color: 'hover:bg-cyan-300',
-    muted_color: 'hover:bg-cyan-300/20',
-    text_color: 'text-cyan-300',
-    border_color: 'border-cyan-300',
-    stroke_color: 'stroke-cyan-300',
     icon: Truck,
     value_label: 'Estimate',
-    gradient: 'bg-gradient-to-l from-cyan-200 via-cyan-300 to-cyan-400',
   },
   Received: {
-    background_color: 'bg-fuchsia-400',
-    muted_bg: "bg-fuchsia-400/20",
-    hover_background_color: 'hover:bg-fuchsia-400',
-    muted_color: 'hover:bg-fuchsia-400/20',
-    text_color: 'text-fuchsia-400',
-    border_color: 'border-fuchsia-400',
-    stroke_color: 'stroke-fuchsia-400',
     icon: PackageOpen,
     value_label: 'Estimate',
-    gradient: 'bg-gradient-to-l from-fuchsia-300 via-fuchsia-400 to-fuchsia-500',
   },
   'Offer Sent': {
-    background_color: 'bg-yellow-400',
-    muted_bg: "bg-yellow-400/20",
-    hover_background_color: 'hover:bg-yellow-400',
-    muted_color: 'hover:bg-yellow-400/20',
-    text_color: 'text-yellow-400',
-    border_color: 'border-yellow-400',
-    stroke_color: 'stroke-yellow-400',
     icon: Hourglass,
     value_label: 'Offer',
-    gradient: 'bg-gradient-to-l from-yellow-300 via-yellow-400 to-yellow-500',
   },
   Accepted: {
-    background_color: 'bg-orange-500',
-    muted_bg: "bg-orange-500/20",
-    hover_background_color: 'hover:bg-orange-500',
-    muted_color: 'hover:bg-orange-500/20',
-    text_color: 'text-orange-500',
-    border_color: 'border-orange-500',
-    stroke_color: 'stroke-orange-500',
     icon: Handshake,
     value_label: 'Payout',
-    gradient: 'bg-gradient-to-l from-orange-400 via-orange-500 to-orange-600',
   },
   Rejected: {
-    background_color: 'bg-rose-400',
-    muted_bg: "bg-rose-400/20",
-    hover_background_color: 'hover:bg-rose-400',
-    muted_color: 'hover:bg-rose-400/20',
-    text_color: 'text-rose-400',
-    border_color: 'border-rose-400',
-    stroke_color: 'stroke-rose-400',
     icon: X,
     value_label: 'Offer',
-    gradient: 'bg-gradient-to-l from-rose-300 via-rose-400 to-rose-500',
   },
   'Payment Processing': {
-    background_color: 'bg-sky-600',
-    muted_bg: "bg-sky-600/20",
-    hover_background_color: 'hover:bg-sky-600',
-    muted_color: 'hover:bg-sky-600/20',
-    text_color: 'text-sky-600',
-    border_color: 'border-sky-600',
-    stroke_color: 'stroke-sky-600',
     icon: CreditCard,
     value_label: 'Payout',
-    gradient: 'bg-gradient-to-l from-sky-500 via-sky-600 to-sky-700',
   },
   Cancelled: {
-    background_color: 'bg-red-600',
-    muted_bg: "bg-red-600/20",
-    hover_background_color: 'hover:bg-red-600',
-    muted_color: 'hover:bg-red-600/20',
-    text_color: 'text-red-600',
-    border_color: 'border-red-600',
-    stroke_color: 'stroke-red-600',
     icon: Ban,
     value_label: '',
-    gradient: 'bg-gradient-to-l from-red-500 via-red-600 to-red-700',
   },
   Completed: {
-    background_color: 'bg-green-500',
-    muted_bg: "bg-green-500/20",
-    hover_background_color: 'hover:bg-green-500',
-    muted_color: 'hover:bg-green-500/20',
-    text_color: 'text-green-500',
-    border_color: 'border-green-500',
-    stroke_color: 'stroke-green-500',
     icon: ShieldCheck,
     value_label: 'Payout',
-    gradient: 'bg-gradient-to-l from-green-400 via-green-500 to-green-600',
   },
 }
 

@@ -71,7 +71,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border on-glass overflow-hidden">
+      <div className="rounded-xl on-glass overflow-hidden">
         <div className="flex items-center justify-between w-full px-3 py-2 text-xs tracking-widest text-neutral-600 bg-muted/40">
           <div>Item</div>
           <div className="text-right">Premium</div>
@@ -123,7 +123,7 @@ export default function RefinerValues({ order }: { order: PurchaseOrder }) {
           })}
         </div>
       </div>
-      <div className="rounded-xl border border-border on-glass">
+      <div className="rounded-xl on-glass">
         <div className="flex items-center justify-between w-full px-3 py-2 text-xs tracking-widest text-neutral-600 bg-muted/40">
           <div>Update Refiner Fee</div>
           <div className="text-right">Amount</div>

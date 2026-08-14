@@ -82,12 +82,12 @@ export default function OfferSentPurchaseOrder({ order }: PurchaseOrderDrawerCon
           <DialogTrigger asChild>
             <Button
               variant="default"
-              className="hover:text-white raised-off-page w-full p-4 bg-card text-primary hover:bg-primary"
+              className="hover:text-white raised-off-page w-full p-4 on-glass text-primary hover:bg-primary"
             >
               Reject Offer
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-background">
+          <DialogContent className="glass-panel">
             <DialogHeader>
               <DialogTitle>Reject our offer?</DialogTitle>
             </DialogHeader>
@@ -96,7 +96,7 @@ export default function OfferSentPurchaseOrder({ order }: PurchaseOrderDrawerCon
               We'll reach out shortly to discuss.
             </DialogDescription>
             <Textarea
-              className="input-floating-label-form"
+              className="on-glass"
               value={rejectedNotes}
               onChange={(e) => setRejectedNotes(e.target.value)}
             />

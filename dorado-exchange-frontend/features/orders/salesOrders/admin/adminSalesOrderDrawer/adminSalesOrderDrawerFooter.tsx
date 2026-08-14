@@ -14,7 +14,7 @@ import { SalesOrderDrawerFooterProps, statusConfig } from '@/features/orders/sal
 import { SalesOrderActionButtons } from '@/features/orders/salesOrders/admin/adminSalesOrderDrawer/adminSalesOrderDrawerContents/adminSalesOrderActionButtons'
 
 export default function AdminSalesOrderDrawerFooter({ order }: SalesOrderDrawerFooterProps) {
-  const statusColor = statusConfig[order.sales_order_status]?.text_color ?? ''
+  const statusColor = 'text-primary'
 
   const [open, setOpen] = useState({
     items: false,
@@ -126,7 +126,7 @@ function Accordion({
   total: number
 }) {
   return (
-    <div className="rounded-md bg-card raised-off-page">
+    <div className="rounded-md on-glass">
       <button
         type="button"
         onClick={toggle}

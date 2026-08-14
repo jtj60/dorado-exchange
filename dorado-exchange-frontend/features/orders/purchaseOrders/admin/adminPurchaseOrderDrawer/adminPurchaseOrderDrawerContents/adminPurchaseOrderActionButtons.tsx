@@ -213,21 +213,12 @@ export function PurchaseOrderActionButtons({ order }: PurchaseOrderActionButtons
             variant={button.label === 'Adjust Price' ? 'outline' : 'default'}
             disabled={button.disabled}
             className={cn(
-              'w-full transition-colors text-white',
+              'w-full transition-colors',
               isSecondaryStyle
-                ? cn(
-                    'bg-card',
-                    status?.text_color,
-                    status?.hover_background_color,
-                    'hover:text-white raised-off-page'
-                  )
+                ? 'on-glass'
                 : isTertiaryStyle
-                ? cn(
-                    'bg-transparent',
-                    status?.text_color,
-                    'flex justify-start p-0 h-4 hover:bg-transparent'
-                  )
-                : cn(status?.background_color, status?.hover_background_color, 'raised-off-page')
+                ? 'bg-transparent text-primary flex justify-start p-0 h-4 hover:bg-transparent'
+                : 'primary-on-glass'
             )}
           >
             {button.label}

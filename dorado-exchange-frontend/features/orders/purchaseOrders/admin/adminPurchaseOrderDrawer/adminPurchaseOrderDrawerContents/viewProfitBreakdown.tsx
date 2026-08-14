@@ -268,14 +268,14 @@ export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
 
   if (availableBuckets.length === 0) {
     return (
-      <div className="flex w-full h-full on-glass p-4 rounded-md">
+      <div className="flex w-full h-full">
         <div className="text-neutral-600">No items to display.</div>
       </div>
     )
   }
 
   return (
-    <div className="flex w-full on-glass p-4 rounded-md">
+    <div className="flex w-full">
       <div className="flex flex-col gap-4 w-full">
         <div className="text-xl text-neutral-900">Profit Breakdown</div>
 
@@ -285,7 +285,7 @@ export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
               <TabsTrigger
                 value="total"
                 className={cn(
-                  config.background_color,
+                  'primary-on-glass',
                   'data-[state=active]:text-white data-[state=inactive]:bg-neutral-200 data-[state=inactive]:text-neutral-900 raised-off-page cursor-pointer py-2'
                 )}
               >
@@ -296,7 +296,7 @@ export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
               <TabsTrigger
                 value="scrap"
                 className={cn(
-                  config.background_color,
+                  'primary-on-glass',
                   'data-[state=active]:text-white data-[state=inactive]:bg-neutral-200 data-[state=inactive]:text-neutral-900 raised-off-page cursor-pointer py-2'
                 )}
               >
@@ -307,7 +307,7 @@ export default function ProfitBreakdown({ order }: { order: PurchaseOrder }) {
               <TabsTrigger
                 value="bullion"
                 className={cn(
-                  config.background_color,
+                  'primary-on-glass',
                   'data-[state=active]:text-white data-[state=inactive]:bg-neutral-200 data-[state=inactive]:text-neutral-900 raised-off-page cursor-pointer py-2'
                 )}
               >

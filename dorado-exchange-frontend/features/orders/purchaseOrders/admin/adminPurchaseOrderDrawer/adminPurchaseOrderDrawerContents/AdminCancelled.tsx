@@ -20,7 +20,7 @@ export default function AdminCancelledPurchaseOrder({ order }: PurchaseOrderDraw
     <>
       <div className="flex flex-col w-full h-full">
         {!order.return_shipping_paid ? (
-          <div className="flex flex-col w-full h-auto raised-off-screen bg-card p-4 rounded-lg">
+          <div className="flex flex-col w-full h-auto on-glass p-4 rounded-lg">
             <div className="flex w-full justify-between items-center mb-1">
               <div className="text-lg text-neutral-800">Customer Payment:</div>
               <div className="text-lg text-neutral-800">
@@ -37,7 +37,7 @@ export default function AdminCancelledPurchaseOrder({ order }: PurchaseOrderDraw
             </div>
             <Button
               variant="link"
-              className={cn(config.text_color, 'p-0 text-sm font-normal ml-auto')}
+              className={cn('text-primary', 'p-0 text-sm font-normal ml-auto')}
               onClick={() => {
                 handleMarkShippingPaid
               }}
@@ -49,8 +49,8 @@ export default function AdminCancelledPurchaseOrder({ order }: PurchaseOrderDraw
           <TrackingEvents
             isLoading={isLoading}
             trackingInfo={trackingInfo}
-            background_color={config.background_color}
-            borderColor={config.border_color}
+            background_color={'bg-primary'}
+            borderColor={'border-primary'}
             delivery_date={order.shipment.delivered_at ?? order.shipment.estimated_delivery}
             shipping_status={order.shipment.shipping_status}
           />

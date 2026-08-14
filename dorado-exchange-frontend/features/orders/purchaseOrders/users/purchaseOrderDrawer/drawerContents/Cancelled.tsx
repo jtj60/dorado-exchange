@@ -58,7 +58,7 @@ export default function CancelledPurchaseOrder({ order }: PurchaseOrderDrawerCon
               </Button>
             </div>
 
-            <div className="separator-inset" />
+            <div className="glass-divider" />
 
             <div className="flex flex-col w-full">
               <div className="flex flex-col gap-1 text-left text-xl text-neutral-900 mb-4">
@@ -77,7 +77,7 @@ export default function CancelledPurchaseOrder({ order }: PurchaseOrderDrawerCon
               </div>
               <Button
                 variant="default"
-                className="text-primary hover:text-white hover:bg-primary raised-off-page w-full p-4 bg-card"
+                className="text-primary hover:text-white hover:bg-primary raised-off-page w-full p-4 on-glass"
                 onClick={handleAcceptOffer}
                 disabled={acceptOffer.isPending}
               >

@@ -9,8 +9,8 @@ export default function AdminInTransitSalesOrder({ order }: SalesOrderDrawerCont
     carrier_id: order.shipment.carrier_id,
   })
 
-  const baseBg = statusConfig[order.sales_order_status]?.background_color
-  const border = statusConfig[order.sales_order_status]?.border_color
+  const baseBg = 'bg-primary'
+  const border = 'border-primary'
 
   return (
     <>

@@ -105,10 +105,10 @@ export function CreateSalesOrderDrawer() {
   }, [defaultAddress.id, addresses.length, data.address?.id, setData])
 
   return (
-    <Drawer open={isDrawerOpen} setOpen={closeDrawer} anchor="left" className="bg-background">
+    <Drawer open={isDrawerOpen} setOpen={closeDrawer} anchor="left" className="glass-panel">
       <div className="text-base text-neutral-800">{createSalesOrderUser?.name}</div>
 
-      <div className="separator-inset" />
+      <div className="glass-divider" />
 
       <div className="flex flex-col gap-2 items-start">
         <Button
@@ -133,13 +133,13 @@ export function CreateSalesOrderDrawer() {
         <ProductSelector />
       </div>
 
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <div className="flex flex-col gap-3">
         <AddressSelector user={createSalesOrderUser} addresses={addresses} isLoading={isLoading} />
         <ServiceSelector />
       </div>
 
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <div className="flex flex-col gap-3">
         <OrderSummary orderPrices={orderPrices} />
         <CreditSelect orderPrices={orderPrices} />
@@ -173,7 +173,7 @@ function SpotSelector({ spotsLocked }: { spotsLocked: boolean }) {
               inputMode="decimal"
               readOnly={!spotsLocked}
               className={cn(
-                'input-floating-label-form no-spinner text-center w-full text-base h-8',
+                'on-glass no-spinner text-center w-full text-base h-8',
                 !spotsLocked && 'cursor-not-allowed'
               )}
               value={spot?.ask_spot ?? ''}
@@ -233,7 +233,7 @@ function ProductSelector() {
         onSelect={addItem}
         placeholder="Search products…"
         limit={50}
-        inputClassname="input-floating-label-form"
+        inputClassname="on-glass"
       />
       <div className="w-full flex-col">
         <div className="flex-col gap-5">
@@ -483,7 +483,7 @@ function OrderSummary({ orderPrices }: { orderPrices: SalesOrderTotals }) {
       )}
 
       <div className="pt-2">
-        <div className="separator-inset" />
+        <div className="glass-divider" />
 
         <div className="w-full flex items-center justify-between pt-2">
           <div className="text-base text-primary">Order Total</div>
@@ -497,7 +497,7 @@ function OrderSummary({ orderPrices }: { orderPrices: SalesOrderTotals }) {
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="flex w-full bg-card raised-off-page rounded-lg p-4">
+      <div className="flex w-full on-glass rounded-lg p-4">
         <div className="flex flex-col w-full gap-3">{paymentContent}</div>
       </div>
     </div>

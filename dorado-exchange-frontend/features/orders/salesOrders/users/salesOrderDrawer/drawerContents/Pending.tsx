@@ -11,7 +11,7 @@ export default function PendingSalesOrder({ order }: SalesOrderDrawerContentProp
           We're waiting on your payment to fully process. Once it does, we will begin preparing your order for shipment.
         </div>
       </div>
-      <div className="relative flex flex-col bg-card raised-off-page p-4 rounded-lg w-full">
+      <div className="relative flex flex-col on-glass p-4 rounded-lg w-full">
         <ShineBorder
           shineColor={['#ae8625', '#f5d67d', '#d2ac47', '#edc967', '#ae8625']}
           borderWidth={2}

@@ -22,7 +22,7 @@ export default function AdminAcceptedPurchaseOrder({ order }: PurchaseOrderDrawe
             <Button
               variant="ghost"
               className={cn(
-                config.text_color,
+                'text-primary',
                 'flex items-center justify-between gap-1 px-4 font-normal text-sm on-glass border-none h-9 w-full'
               )}
             >
@@ -50,11 +50,11 @@ export default function AdminAcceptedPurchaseOrder({ order }: PurchaseOrderDrawe
                     }}
                     className={cn(
                       'group h-9 px-3 flex items-center gap-2 transition-colors duration-150 cursor-pointer',
-                      config.text_color,
-                      config.hover_background_color
+                      'text-primary',
+                      'hover:bg-primary'
                     )}
                   >
-                    <Icon size={16} className={cn(config.text_color)} />
+                    <Icon size={16} className={cn('text-primary')} />
                     <span className="transition-colors">{label}</span>
                   </CommandItem>
                 ))}

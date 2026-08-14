@@ -33,7 +33,7 @@ import { usePurchaseOrderMetals } from '@/features/orders/purchaseOrders/users/q
 
 export default function AdminPurchaseOrderDrawerFooter({ order }: PurchaseOrderDrawerFooterProps) {
   const valueLabel = statusConfig[order.purchase_order_status]?.value_label ?? ''
-  const statusColor = statusConfig[order.purchase_order_status]?.text_color ?? ''
+  const statusColor = 'text-primary'
 
   const { data: spotPrices = [] } = useSpotPrices()
   const { data: orderSpotPrices = [] } = usePurchaseOrderMetals(order.id)

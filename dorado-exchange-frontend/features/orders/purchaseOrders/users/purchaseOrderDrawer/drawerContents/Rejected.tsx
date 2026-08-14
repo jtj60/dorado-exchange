@@ -153,7 +153,7 @@ export default function RejectedPurchaseOrder({ order }: PurchaseOrderDrawerCont
 
             <div className="flex flex-col gap-0 w-full">
               <Textarea
-                className="input-floating-label-form min-h-30"
+                className="on-glass min-h-30"
                 value={offerNotes}
                 onChange={(e) => setOfferNotes(e.target.value)}
               />
@@ -215,13 +215,13 @@ export default function RejectedPurchaseOrder({ order }: PurchaseOrderDrawerCont
           <DialogTrigger asChild>
             <Button
               variant="default"
-              className="text-primary hover:text-white raised-off-page w-full p-4 bg-card hover:bg-primary"
+              className="text-primary hover:text-white raised-off-page w-full p-4 on-glass hover:bg-primary"
             >
               Cancel Order
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="bg-background">
+          <DialogContent className="glass-panel">
             <DialogHeader>
               <DialogTitle className="text-left">Cancel Order?</DialogTitle>
             </DialogHeader>

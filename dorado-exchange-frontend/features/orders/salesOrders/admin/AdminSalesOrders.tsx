@@ -38,9 +38,9 @@ export default function SalesOrdersPage() {
         label: status,
         predicate: (so: SalesOrder) => so.sales_order_status === status,
 
-        buttonActiveClassName: cn(config.muted_bg, config.border_color, 'text-neutral-900'),
-        iconBaseClassName: config.text_color,
-        iconActiveClassName: config.text_color,
+        buttonActiveClassName: cn('bg-primary/20', 'border-primary', 'text-neutral-900'),
+        iconBaseClassName: 'text-primary',
+        iconActiveClassName: 'text-primary',
       }
     })
   }, [salesOrders])
@@ -75,7 +75,7 @@ export default function SalesOrdersPage() {
           const config = statusConfig[status]
           if (!config) return null
           const Icon = config.icon
-          return <Icon size={20} className={config.text_color} />
+          return <Icon size={20} className={'text-primary'} />
         },
         size: 80,
       }),
@@ -109,7 +109,7 @@ export default function SalesOrdersPage() {
         onRowClick={handleRowClick}
         getRowClassName={(row) => {
           const cfg = statusConfig[row.original.sales_order_status]
-          return cn('hover:bg-background hover:cursor-pointer', cfg?.muted_color)
+          return cn('hover:bg-background hover:cursor-pointer', 'hover:bg-primary/20')
         }}
         filterCards={filterCards}
       />

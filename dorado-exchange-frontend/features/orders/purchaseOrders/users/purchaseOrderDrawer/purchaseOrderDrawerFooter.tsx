@@ -273,7 +273,7 @@ function Accordion({
   total: number
 }) {
   return (
-    <div className="rounded-md bg-card raised-off-page">
+    <div className="rounded-md on-glass">
       <button
         type="button"
         onClick={toggle}

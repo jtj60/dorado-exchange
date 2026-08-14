@@ -17,7 +17,7 @@ export default function AdminPaymentProcessingPurchaseOrder({
         <div className="flex flex-col items-start gap-4 w-full">
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1 text-xl text-neutral-800">
-              <Icon size={24} className={config.text_color} />
+              <Icon size={24} className={'text-primary'} />
               {payout?.label}
             </div>
             <div className="text-xl text-neutral-900">

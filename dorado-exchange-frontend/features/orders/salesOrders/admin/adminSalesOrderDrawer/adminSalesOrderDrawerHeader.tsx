@@ -41,7 +41,7 @@ export default function AdminSalesOrderDrawerHeader({ order }: SalesOrderDrawerH
       <div className="flex w-full justify-between items-center">
         <div className="flex items-center gap-2">
           {status && Icon && (
-            <div className={`${status.text_color}`}>
+            <div className={`${'text-primary'}`}>
               <Icon size={24} />
             </div>
           )}
@@ -53,7 +53,7 @@ export default function AdminSalesOrderDrawerHeader({ order }: SalesOrderDrawerH
               <Button
                 key={index}
                 variant="link"
-                className={`font-normal text-sm bg-transparent hover:bg-transparent ${status.text_color} px-0`}
+                className={`font-normal text-sm bg-transparent hover:bg-transparent ${'text-primary'} px-0`}
                 onClick={onClick}
                 disabled={isPending}
               >

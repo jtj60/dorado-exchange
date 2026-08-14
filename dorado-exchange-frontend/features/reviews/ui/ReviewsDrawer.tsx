@@ -33,11 +33,11 @@ export default function ReviewsDrawer({
   return (
     <Drawer open={isDrawerOpen} setOpen={closeDrawer}>
       <Header review={review} />
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <EditFields review={review} />
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <Visibility review={review} />
-      <div className="separator-inset" />
+      <div className="glass-divider" />
       <Created review={review} />
       <div className="mt-auto">
         <Footer review={review} />
@@ -94,7 +94,7 @@ function EditFields({ review }: { review: Review }) {
           label="Reviewer Name"
           type="text"
           size="sm"
-          className="input-floating-label-form h-10"
+          className="on-glass h-10"
           defaultValue={review.name ?? ''}
           onBlur={(e) => handleUpdate({ name: e.target.value })}
         />
@@ -104,7 +104,7 @@ function EditFields({ review }: { review: Review }) {
         <FloatingLabelTextarea
           label="Review Text"
           size="sm"
-          className="input-floating-label-form min-h-40"
+          className="on-glass min-h-40"
           defaultValue={review.review_text ?? ''}
           onBlur={(e) => handleUpdate({ review_text: e.target.value })}
           placeholder="Input review here..."
@@ -201,7 +201,7 @@ function Created({ review }: { review: Review }) {
             if (d < minDate || d > maxDate) return
             handleUpdate(d)
           }}
-          className="p-2 bg-card w-full raised-off-page rounded-lg"
+          className="p-2 on-glass w-full rounded-lg"
           disabled={[{ before: minDate }, { after: maxDate }]}
         />
       </div>

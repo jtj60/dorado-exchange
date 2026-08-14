@@ -7,7 +7,7 @@ export default function PaymentProcessingPurchaseOrder({ order }: PurchaseOrderD
 
   return (
     <div className="flex flex-col items-center gap-4 h-full">
-      <div className="h-auto w-full p-4 rounded-lg flex flex-col gap-3 raised-off-page bg-card">
+      <div className="h-auto w-full p-4 rounded-lg flex flex-col gap-3 on-glass">
         <div className="flex flex-col items-start gap-4 w-full">
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1 text-xl text-neutral-800">

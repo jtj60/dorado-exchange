@@ -26,7 +26,7 @@ export default function AdminOfferSentPurchaseOrder({ order }: PurchaseOrderDraw
           <CountdownRing
             sentAt={order.offer_sent_at!}
             expiresAt={order.offer_expires_at!}
-            fillColor={config.stroke_color}
+            fillColor={'stroke-primary'}
           />
         </div>
       </div>

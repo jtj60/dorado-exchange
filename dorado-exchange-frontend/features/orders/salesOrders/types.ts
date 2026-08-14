@@ -88,68 +88,28 @@ export type SalesOrderReturnShipment = z.infer<typeof salesOrderReturnShipmentSc
 export const SalesOrderStatuses = ['Pending', 'Preparing', 'In Transit', 'Completed']
 
 export type StatusConfigEntry = {
-  text_color: string
-  background_color: string
-  muted_bg: string
-  hover_background_color: string
-  muted_color: string
-  border_color: string
-  stroke_color: string
   icon: LucideIcon
   value_label: string
-  gradient: string
 }
 
 export type StatusConfig = Record<string, StatusConfigEntry>
 
 export const statusConfig: StatusConfig = {
   Pending: {
-    background_color: 'bg-rose-600',
-    muted_bg: 'bg-rose-600/20',
-    hover_background_color: 'hover:bg-rose-600',
-    muted_color: 'hover:bg-rose-600/20',
-    text_color: 'text-rose-600',
-    border_color: 'border-rose-600',
-    stroke_color: 'stroke-rose-600',
     icon: HourglassIcon,
     value_label: 'Price',
-    gradient: 'bg-gradient-to-l from-rose-500 via-rose-600 to-rose-700',
   },
   Preparing: {
-    background_color: 'bg-amber-500',
-    muted_bg: 'bg-amber-500/20',
-    hover_background_color: 'hover:bg-amber-500',
-    muted_color: 'hover:bg-amber-500/20',
-    text_color: 'text-amber-500',
-    border_color: 'border-amber-500',
-    stroke_color: 'stroke-amber-500',
     icon: PackageIcon,
     value_label: 'Price',
-    gradient: 'bg-gradient-to-l from-amber-400 via-amber-500 to-amber-600',
   },
   'In Transit': {
-    background_color: 'bg-cyan-600',
-    muted_bg: 'bg-cyan-600/20',
-    hover_background_color: 'hover:bg-cyan-600',
-    muted_color: 'hover:bg-cyan-600/20',
-    text_color: 'text-cyan-600',
-    border_color: 'border-cyan-600',
-    stroke_color: 'stroke-cyan-600',
     icon: TruckIcon,
     value_label: 'Price',
-    gradient: 'bg-gradient-to-l from-cyan-400 via-cyan-500 to-cyan-600',
   },
   Completed: {
-    background_color: 'bg-green-700',
-    muted_bg: 'bg-green-700/20',
-    hover_background_color: 'hover:bg-green-700',
-    muted_color: 'hover:bg-green-700/20',
-    text_color: 'text-green-700',
-    border_color: 'border-green-700',
-    stroke_color: 'stroke-green-700',
     icon: ShieldCheckIcon,
     value_label: 'Price',
-    gradient: 'bg-gradient-to-l from-green-600 via-green-700 to-green-800',
   },
 }
 

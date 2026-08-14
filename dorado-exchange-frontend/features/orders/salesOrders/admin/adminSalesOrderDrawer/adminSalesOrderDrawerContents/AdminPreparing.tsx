@@ -64,8 +64,8 @@ export default function AdminPreparingSalesOrder({ order }: SalesOrderDrawerCont
       <Button
         className={cn(
           'p-4 raised-off-page w-full text-white',
-          config.background_color,
-          config.hover_background_color,
+          'primary-on-glass',
+          'hover:bg-primary',
           !selectedSupplier || (sendOrder.isPending && 'opacity-30')
         )}
         onClick={() => {
@@ -86,7 +86,7 @@ export default function AdminPreparingSalesOrder({ order }: SalesOrderDrawerCont
           : 'Select Supplier'}
       </Button>
 
-      <div className="separator-inset" />
+      <div className="glass-divider" />
 
       {carriers && (
         <RadioGroupImage
@@ -99,7 +99,7 @@ export default function AdminPreparingSalesOrder({ order }: SalesOrderDrawerCont
 
       <FloatingLabelInput
         type="text"
-        className="input-floating-label-form min-w-48"
+        className="on-glass min-w-48"
         label="Tracking Number"
         value={trackingNumber}
         disabled={!selectedCarrier || updateTracking.isPending}
@@ -109,8 +109,8 @@ export default function AdminPreparingSalesOrder({ order }: SalesOrderDrawerCont
       <Button
         className={cn(
           'p-4 raised-off-page w-full text-white',
-          config.background_color,
-          config.hover_background_color,
+          'primary-on-glass',
+          'hover:bg-primary',
           !selectedCarrier || updateTracking.isPending || (trackingNumber === '' && 'opacity-30')
         )}
         onClick={() => {

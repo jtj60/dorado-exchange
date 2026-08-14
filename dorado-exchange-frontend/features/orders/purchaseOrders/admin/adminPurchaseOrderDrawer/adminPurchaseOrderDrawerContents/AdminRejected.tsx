@@ -84,7 +84,7 @@ export default function AdminRejectedPurchaseOrder({ order }: PurchaseOrderDrawe
                 <Button
                   variant="link"
                   className={cn(
-                    config.text_color,
+                    'text-primary',
                     'p-0 font-normal text-sm h-4 hover:bg-transparent'
                   )}
                   onClick={() =>
@@ -186,7 +186,7 @@ export default function AdminRejectedPurchaseOrder({ order }: PurchaseOrderDrawe
             <CountdownRing
               sentAt={order.offer_sent_at!}
               expiresAt={order.offer_expires_at!}
-              fillColor={config.stroke_color}
+              fillColor={'stroke-primary'}
             />
           </div>
         </div>
@@ -439,8 +439,8 @@ function ScrapTable({
                   variant="default"
                   className={cn(
                     'raised-off-page w-16 text-white h-8 hover:text-white',
-                    config.background_color,
-                    config.hover_background_color,
+                    'primary-on-glass',
+                    'hover:bg-primary',
                     selectedIds.length === 0 && 'opacity-50 cursor-not-allowed'
                   )}
                 >
@@ -457,8 +457,8 @@ function ScrapTable({
                   variant="default"
                   className={cn(
                     'raised-off-page w-16 text-white h-8 hover:text-white',
-                    config.background_color,
-                    config.hover_background_color,
+                    'primary-on-glass',
+                    'hover:bg-primary',
                     editMode || (selectedIds.length === 0 && 'opacity-50 cursor-not-allowed')
                   )}
                 >
@@ -471,10 +471,10 @@ function ScrapTable({
                 disabled={selectedIds.length === 0}
                 variant="outline"
                 className={cn(
-                  'raised-off-page w-16 bg-card h-8 hover:text-white hover:border-none',
-                  config.border_color,
-                  config.text_color,
-                  config.hover_background_color,
+                  'raised-off-page w-16 on-glass h-8 hover:text-white hover:border-none',
+                  'border-primary',
+                  'text-primary',
+                  'hover:bg-primary',
                   (editMode || selectedIds.length === 0) && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -487,7 +487,7 @@ function ScrapTable({
                   disabled={editMode}
                   variant="link"
                   className={cn(
-                    config.text_color,
+                    'text-primary',
                     'flex items-center gap-1 p-0 font-normal text-sm h-4 hover:bg-transparent',
                     editMode && 'opacity-50 cursor-not-allowed'
                   )}
@@ -513,14 +513,14 @@ function ScrapTable({
                         }}
                         className={cn(
                           'group h-9 px-3 flex items-center gap-2 transition-colors duration-150 cursor-pointer',
-                          config.text_color,
-                          config.hover_background_color
+                          'text-primary',
+                          'hover:bg-primary'
                         )}
                       >
                         <span
                           className={cn(
                             'transition-colors',
-                            config.text_color,
+                            'text-primary',
                             'group-hover:text-white'
                           )}
                         >
@@ -542,8 +542,8 @@ function ScrapTable({
                 disabled={editMode}
                 variant="default"
                 className={cn(
-                  config.background_color,
-                  config.hover_background_color,
+                  'primary-on-glass',
+                  'hover:bg-primary',
                   'flex items-center gap-1 p-4 font-normal text-base text-white'
                 )}
               >
@@ -567,14 +567,14 @@ function ScrapTable({
                       }}
                       className={cn(
                         'group h-9 px-3 flex items-center gap-2 transition-colors duration-150 cursor-pointer',
-                        config.text_color,
-                        config.hover_background_color
+                        'text-primary',
+                        'hover:bg-primary'
                       )}
                     >
                       <span
                         className={cn(
                           'transition-colors',
-                          config.text_color,
+                          'text-primary',
                           'group-hover:text-white'
                         )}
                       >
@@ -764,8 +764,8 @@ function BullionTable({
                   variant="default"
                   className={cn(
                     'raised-off-page w-16 text-white h-8 hover:text-white',
-                    config.background_color,
-                    config.hover_background_color,
+                    'primary-on-glass',
+                    'hover:bg-primary',
                     selectedIds.length === 0 && 'opacity-50 cursor-not-allowed'
                   )}
                 >
@@ -782,8 +782,8 @@ function BullionTable({
                   variant="default"
                   className={cn(
                     'raised-off-page w-16 text-white h-8 hover:text-white',
-                    config.background_color,
-                    config.hover_background_color,
+                    'primary-on-glass',
+                    'hover:bg-primary',
                     editMode || (selectedIds.length === 0 && 'opacity-50 cursor-not-allowed')
                   )}
                 >
@@ -796,10 +796,10 @@ function BullionTable({
                 disabled={selectedIds.length === 0}
                 variant="outline"
                 className={cn(
-                  'raised-off-page w-16 bg-card h-8 hover:text-white hover:border-none',
-                  config.border_color,
-                  config.text_color,
-                  config.hover_background_color,
+                  'raised-off-page w-16 on-glass h-8 hover:text-white hover:border-none',
+                  'border-primary',
+                  'text-primary',
+                  'hover:bg-primary',
                   (editMode || selectedIds.length === 0) && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -812,7 +812,7 @@ function BullionTable({
                   disabled={editMode}
                   variant="link"
                   className={cn(
-                    config.text_color,
+                    'text-primary',
                     'flex items-center gap-1 p-0 font-normal text-sm h-4 hover:bg-transparent',
                     editMode && 'opacity-50 cursor-not-allowed'
                   )}
@@ -842,14 +842,14 @@ function BullionTable({
                         }}
                         className={cn(
                           'group h-9 px-3 flex items-center justify-between gap-2 transition-colors duration-150 cursor-pointer',
-                          config.text_color,
-                          config.hover_background_color
+                          'text-primary',
+                          'hover:bg-primary'
                         )}
                       >
                         <span
                           className={cn(
                             'transition-colors group-hover:text-white',
-                            config.text_color
+                            'text-primary'
                           )}
                         >
                           {product.product_name}
@@ -870,8 +870,8 @@ function BullionTable({
                 disabled={editMode}
                 variant="default"
                 className={cn(
-                  config.background_color,
-                  config.hover_background_color,
+                  'primary-on-glass',
+                  'hover:bg-primary',
                   'flex items-center gap-1 p-4 font-normal text-base text-white'
                 )}
               >
@@ -899,14 +899,14 @@ function BullionTable({
                       }}
                       className={cn(
                         'group h-9 px-3 flex items-center justify-between gap-2 transition-colors duration-150 cursor-pointer',
-                        config.text_color,
-                        config.hover_background_color
+                        'text-primary',
+                        'hover:bg-primary'
                       )}
                     >
                       <span
                         className={cn(
                           'transition-colors group-hover:text-white',
-                          config.text_color
+                          'text-primary'
                         )}
                       >
                         {product.product_name}

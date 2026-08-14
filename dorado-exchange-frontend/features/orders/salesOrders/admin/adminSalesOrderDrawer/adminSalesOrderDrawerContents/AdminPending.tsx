@@ -15,7 +15,7 @@ export default function AdminPendingSalesOrder({ order }: SalesOrderDrawerConten
   return (
     <>
       {paymentIntent && (
-        <div className="flex flex-col gap-4 bg-card raised-off-page rounded-lg h-full p-4">
+        <div className="flex flex-col gap-4 on-glass rounded-lg h-full p-4">
           <div className="flex items-center w-full justify-between">
             <div className="text-lg text-neutral-800 flex items-center gap-2">
               <Icon size={24} />
@@ -23,12 +23,12 @@ export default function AdminPendingSalesOrder({ order }: SalesOrderDrawerConten
             </div>
             <div
               className={cn(
-                'text-sm p-1 rounded-lg raised-off-page',
+                'text-sm p-1 px-2 rounded-lg',
                 paymentIntent.payment_status === 'succeeded'
-                  ? 'text-green-700 bg-green-200/30'
+                  ? 'success-on-glass'
                   : paymentIntent.payment_status === 'processing'
-                  ? 'text-yellow-700 bg-yellow-200/30'
-                  : 'text-red-700 bg-red-200/30'
+                  ? 'primary-on-glass'
+                  : 'destructive-on-glass'
               )}
             >
               {paymentIntent?.payment_status === 'requires_payment_method'
@@ -40,7 +40,7 @@ export default function AdminPendingSalesOrder({ order }: SalesOrderDrawerConten
             </div>
           </div>
 
-          <div className="separator-inset" />
+          <div className="glass-divider" />
 
           {paymentIntent.card_brand && (
             <div className="flex items-center w-full justify-between">
@@ -96,7 +96,7 @@ export default function AdminPendingSalesOrder({ order }: SalesOrderDrawerConten
               </div>
             </div>
           )}
-          <div className="separator-inset" />
+          <div className="glass-divider" />
 
           <div className="flex items-center w-full justify-between">
             <div className="text-end text-neutral-600">Total Due:</div>
@@ -120,13 +120,13 @@ export default function AdminPendingSalesOrder({ order }: SalesOrderDrawerConten
               />
             </div>
           </div>
-          <div className="separator-inset" />
+          <div className="glass-divider" />
           <Button
             className={cn(
-              'bg-card border hover:border-none',
-              status?.text_color,
-              status?.hover_background_color,
-              status?.border_color,
+              'on-glass hover:border-none',
+              'text-primary',
+              'hover:bg-primary',
+              'border-primary',
               'hover:text-white raised-off-page'
             )}
             onClick={() => cancelPaymentIntent.mutate(paymentIntent.payment_intent_id)}

@@ -62,7 +62,7 @@ export default function PreparingSalesOrder({ order }: SalesOrderDrawerContentPr
           </div>
         </div>
       </div>
-      <div className="relative flex flex-col bg-card raised-off-page p-4 rounded-lg">
+      <div className="relative flex flex-col on-glass p-4 rounded-lg">
         <ShineBorder
           shineColor={['#ae8625', '#f5d67d', '#d2ac47', '#edc967', '#ae8625']}
           borderWidth={2}
