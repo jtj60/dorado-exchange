@@ -136,11 +136,6 @@ export const updateBullion = asyncHandler(async (req, res) => {
   return res.status(200).json({ updated });
 });
 
-export const expireStaleOffers = asyncHandler(async (req, res) => {
-  await purchaseOrderService.expireStaleOffers();
-  return res.status(200).json({ success: true });
-});
-
 export const editShippingCharge = asyncHandler(async (req, res) => {
   await purchaseOrderService.editShippingCharge(req.body);
   return res.status(200).json({ success: true });
