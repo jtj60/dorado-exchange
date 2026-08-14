@@ -1,4 +1,4 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 import { convertTroyOz } from "#shared/utils/convertWeights.js";
 
 export async function updateScrapItem({ item }) {
@@ -14,7 +14,7 @@ export async function updateScrapItem({ item }) {
       item.scrap.gross_unit
     ) * item.scrap.purity_actual ?? item.scrap.content;
 
-  const query = `
+  const sql = `
     UPDATE exchange.scrap
     SET content = $1, 
         purity = $2, 
@@ -39,16 +39,16 @@ export async function updateScrapItem({ item }) {
     content_actual ?? content,
     item.scrap.id,
   ];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function deleteItems(ids) {
-  const query = `
+  const sql = `
     DELETE FROM exchange.scrap
     WHERE id = ANY($1::uuid[]);
   `;
   const values = [ids];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function createNewItem(item, client) {
@@ -57,7 +57,7 @@ export async function createNewItem(item, client) {
     WHERE type = $1
     LIMIT 1
   `;
-  const metalResult = await client.query(metalQuery, [item.metal]);
+  const metalResult = await query(metalQuery, [item.metal], client);
 
   const metal_id = metalResult.rows[0].id;
 
@@ -76,6 +76,6 @@ export async function createNewItem(item, client) {
     item.gross_unit ?? "t oz",
     item.bid_premium ?? 0.75,
   ];
-  const scrapResult = await client.query(scrapQuery, scrapValues);
+  const scrapResult = await query(scrapQuery, scrapValues, client);
   return scrapResult.rows[0].id;
 }

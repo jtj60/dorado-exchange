@@ -1,41 +1,41 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function getUser(user_id) {
-  const query = `
+  const sql = `
     SELECT curr_user.id, curr_user.email, curr_user.name, curr_user."createdAt" AS created_at, curr_user."updatedAt" AS updated_at, curr_user."emailVerified" AS email_verified, curr_user.image, curr_user.role
     FROM exchange.users curr_user
     WHERE id = $1
   `;
   const values = [user_id];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }
 
 export async function getAllUsers() {
-  const query = `
+  const sql = `
     SELECT curr_user.id, curr_user.email, curr_user.name, curr_user."createdAt" AS created_at, curr_user."updatedAt" AS updated_at, curr_user."emailVerified" AS email_verified, curr_user.image, curr_user.role, curr_user.dorado_funds
     FROM exchange.users curr_user
     ORDER BY curr_user.role
   `;
   const values = [];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows;
 }
 
 export async function getAdminUsers() {
-  const query = `
+  const sql = `
     SELECT curr_user.id, curr_user.email, curr_user.name, curr_user."createdAt" AS created_at, curr_user."updatedAt" AS updated_at, curr_user."emailVerified" AS email_verified, curr_user.image, curr_user.role, curr_user.dorado_funds
     FROM exchange.users curr_user
     WHERE role = 'admin'
     ORDER BY curr_user.name DESC
   `;
   const values = [];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows;
 }
 
 export async function adjustUserCredit(user_id, mode, amount) {
-  const query = `
+  const sql = `
     UPDATE exchange.users
     SET dorado_funds = CASE
       WHEN $2 = 'add' THEN COALESCE(dorado_funds, 0) + $1
@@ -45,5 +45,5 @@ export async function adjustUserCredit(user_id, mode, amount) {
     WHERE id = $3
   `;
   const values = [amount, mode, user_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }

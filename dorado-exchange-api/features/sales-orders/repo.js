@@ -1,4 +1,4 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 import { calculateItemAsk } from '#features/sales-orders/utils/calculations.js';
 
 // The three lookups below differ only in how they select rows. They were
@@ -68,7 +68,7 @@ function buildOrderQuery({ where = "", limit = "" } = {}) {
 }
 
 export async function findById(id) {
-  const { rows } = await pool.query(
+  const { rows } = await query(
     buildOrderQuery({ where: "WHERE so.id = $1", limit: "\n    LIMIT 1" }),
     [id]
   );
@@ -76,7 +76,7 @@ export async function findById(id) {
 }
 
 export async function findAllByUser(userId) {
-  const { rows } = await pool.query(
+  const { rows } = await query(
     buildOrderQuery({ where: "WHERE so.user_id = $1" }),
     [userId]
   );
@@ -84,12 +84,12 @@ export async function findAllByUser(userId) {
 }
 
 export async function getAll() {
-  const { rows } = await pool.query(buildOrderQuery(), []);
+  const { rows } = await query(buildOrderQuery(), []);
   return rows;
 }
 
 export async function findMetalsByOrderId(orderId) {
-  const query = `
+  const sql = `
     SELECT 
       id,
       sales_order_id,
@@ -104,12 +104,12 @@ export async function findMetalsByOrderId(orderId) {
     WHERE sales_order_id = $1
     ORDER BY type ASC;
   `;
-  const { rows } = await pool.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId]);
   return rows;
 }
 
 export async function insertOrder(client, { user, status, sales_order, orderPrices }) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.sales_orders (
       user_id,
       address_id,
@@ -160,44 +160,44 @@ export async function insertOrder(client, { user, status, sales_order, orderPric
     orderPrices.charges_amount,
     orderPrices.sales_tax,
   ];
-  const { rows } = await client.query(query, values);
+  const { rows } = await query(sql, values, client);
   return rows[0].id;
 }
 
 export async function insertItems(client, orderId, items, spot_prices) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.sales_order_items
       (sales_order_id, product_id, price, quantity, premium, sales_tax_rate)
     VALUES
       ($1, $2, $3, $4, $5, $6)
   `;
   for (const item of items) {
-    await client.query(query, [
+    await query(sql, [
       orderId,
       item.id,
       calculateItemAsk(item, spot_prices),
       item.quantity,
       item.ask_premium,
       item.sales_tax_rate,
-    ]);
+    ], client);
   }
 }
 
 export async function insertOrderMetals(orderId, spot_prices, client) {
   await Promise.all(
     spot_prices.map(async (spot) => {
-      const query = `
+      const sql = `
         INSERT INTO exchange.order_metals (sales_order_id, type, ask_spot)
         VALUES ($1, $2, $3)
       `;
       const values = [orderId, spot.type, spot.ask_spot];
-      await client.query(query, values);
+      await query(sql, values, client);
     })
   );
 }
 
 export async function updateStatus(order, order_status, user_name) {
-  const query = `
+  const sql = `
     UPDATE exchange.sales_orders
     SET
       sales_order_status = $1,
@@ -208,34 +208,34 @@ export async function updateStatus(order, order_status, user_name) {
   `;
 
   const values = [order_status, user_name, order.id];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function updateTrackingStatus(orderId) {
-  const query = `
+  const sql = `
     UPDATE exchange.sales_orders
     SET tracking_updated = true
     WHERE id = $1
     RETURNING *;
   `;
-  const { rows } = await pool.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId]);
   return rows;
 }
 
 export async function updateOrderSent(orderId, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.sales_orders
     SET order_sent = true
     WHERE id = $1
     RETURNING *;
   `;
-  const { rows } = await client.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId], client);
   return rows;
 }
 
 export async function attachSupplierToOrder(id, supplier_id, client) {
-  return await client.query(
+  return await query(
     `
     UPDATE exchange.sales_orders
     SET supplier_id = $1
@@ -243,17 +243,17 @@ export async function attachSupplierToOrder(id, supplier_id, client) {
     RETURNING id, supplier_id
   `,
     [supplier_id, id]
-  );
+  , client);
 }
 
 export async function createReview({order}) {
-  const query = `
+  const sql = `
     UPDATE exchange.sales_orders
     SET review_created = true
     WHERE id = $1
     RETURNING *;
   `;
   const values = [order.id];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }

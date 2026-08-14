@@ -1,41 +1,41 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function getReview(id) {
-  const query = `
+  const sql = `
     SELECT *
     FROM exchange.reviews
     WHERE id = $1
   `;
   const values = [id];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }
 
 export async function getAllReviews() {
-  const query = `
+  const sql = `
     SELECT *
     FROM exchange.reviews
     ORDER BY created_at DESC
   `;
-  const result = await pool.query(query, []);
+  const result = await query(sql, []);
   return result.rows
 }
 
 export async function getPublicReviews() {
-  const query = `
+  const sql = `
     SELECT *
     FROM exchange.reviews
     WHERE hidden = false
     ORDER BY created_at DESC
     LIMIT 10
   `;
-  const result = await pool.query(query, []);
+  const result = await query(sql, []);
   return result.rows
 }
 
 
 export async function createReview(review) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.reviews (review_text, rating, created_by, updated_by, name, hidden)
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING *;
@@ -48,12 +48,12 @@ export async function createReview(review) {
     review.name,
     review.hidden,
   ];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }
 
 export async function updateReview(review, user_name) {
-  const query = `
+  const sql = `
     UPDATE exchange.reviews
     SET review_text = $1,
         rating = $2,
@@ -76,14 +76,14 @@ export async function updateReview(review, user_name) {
     review.id,
   ];
 
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }
 
 export async function deleteReview(id) {
-  const query = `
+  const sql = `
     DELETE FROM exchange.reviews WHERE id = $1
   `;
   const values = [id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }

@@ -1,4 +1,4 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function getSalesTax(state, item, item_price, item_total) {
   const hasNexus = await isNexus(state);
@@ -8,7 +8,7 @@ export async function getSalesTax(state, item, item_price, item_total) {
     return Number(0);
   }
 
-  const query = `
+  const sql = `
     SELECT
       COALESCE(
         (
@@ -49,28 +49,28 @@ export async function getSalesTax(state, item, item_price, item_total) {
     item.gross,
   ];
 
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return Number(result.rows[0].tax_rate);
 }
 
 export async function updateStateSalesTax(amount, state, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.state_sales_tax
     SET amount_owed = amount_owed + $1
     WHERE state = $2
     AND reached_nexus = true
   `;
   const values = [amount, state];
-  await client.query(query, values);
+  await query(sql, values, client);
 }
 
 export async function isNexus(state) {
-  const query = `
+  const sql = `
     SELECT reached_nexus
     FROM exchange.state_sales_tax
     WHERE state = $1
   `;
   const values = [state];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result?.rows[0]?.reached_nexus;
 }

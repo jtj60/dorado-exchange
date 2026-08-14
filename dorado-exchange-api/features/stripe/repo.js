@@ -1,7 +1,7 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function retrievePaymentIntent(type, session, user_id) {
-  const query = `
+  const sql = `
     SELECT *
     FROM exchange.payment_intents
     WHERE session_id = $1
@@ -16,12 +16,12 @@ export async function retrievePaymentIntent(type, session, user_id) {
     type === 'admin' ? user_id : session.user.id,
     type,
   ];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function createPaymentIntent(payment_intent, type, user_id, session) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.payment_intents (
       session_id,
       user_id,
@@ -40,11 +40,11 @@ export async function createPaymentIntent(payment_intent, type, user_id, session
     payment_intent.status,
     payment_intent.id,
   ];
-  await pool.query(query, values);
+  await query(sql, values);
 }
 
 export async function updatePaymentIntent(payment_intent) {
-  const query = `
+  const sql = `
     UPDATE exchange.payment_intents
     SET payment_status = $1,
         updated_at = NOW(),
@@ -62,11 +62,11 @@ export async function updatePaymentIntent(payment_intent) {
     payment_intent.payment_method,
     payment_intent.id,
   ];
-  await pool.query(query, values);
+  await query(sql, values);
 }
 
 export async function updateMethod({ paymentMethod }) {
-  const query = `
+  const sql = `
     UPDATE exchange.payment_intents
     SET method_type = $1,
         routing = $2,
@@ -85,7 +85,7 @@ export async function updateMethod({ paymentMethod }) {
     paymentMethod?.us_bank_account?.account_type,
     paymentMethod?.id,
   ];
-  await pool.query(query, values);
+  await query(sql, values);
 }
 
 export async function attachOrder(
@@ -94,32 +94,32 @@ export async function attachOrder(
   sales_order_id,
   client
 ) {
-  const query = `
+  const sql = `
     UPDATE exchange.payment_intents
     SET sales_order_id = $1, purchase_order_id = $2
     WHERE payment_intent_id = $3
   `;
   const values = [sales_order_id, purchase_order_id, payment_intent_id];
-  await client.query(query, values);
+  await query(sql, values, client);
 }
 
 export async function attachCustomerToUser(customerId, userId) {
-  const query = `
+  const sql = `
     UPDATE exchange.users
     SET "stripeCustomerId" = $1
     WHERE id = $2
   `;
   const values = [customerId, userId];
-  await pool.query(query, values);
+  await query(sql, values);
 }
 
 export async function getPaymentIntentFromSalesOrderId(sales_order_id) {
-  const query = `
+  const sql = `
     SELECT *
     FROM exchange.payment_intents
     WHERE sales_order_id = $1
   `;
   const values = [sales_order_id];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }

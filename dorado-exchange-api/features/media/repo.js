@@ -1,4 +1,4 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function insertImage({
   user_id,
@@ -8,7 +8,7 @@ export async function insertImage({
   mime_type,
   size_bytes,
 }) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.images (user_id, bucket, path, filename, mime_type, size_bytes)
     VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT (path, filename, user_id)
@@ -29,28 +29,28 @@ export async function insertImage({
     mime_type || null,
     size_bytes || null,
   ];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function getImageById(id) {
-  const query = `
+  const sql = `
     SELECT * 
     FROM exchange.images 
     WHERE id = $1
   `;
   const values = [id];
-  const result = await pool.query(query, values);
+  const result = await query(sql, values);
   return result.rows[0];
 }
 
 export async function getTestImages() {
-  const result = await pool.query('SELECT * FROM exchange.images', []);
+  const result = await query('SELECT * FROM exchange.images', []);
   return result?.rows ?? [];
 }
 
 export async function listImagesByUser(userId) {
-  const { rows } = await pool.query(
+  const { rows } = await query(
     'SELECT * FROM exchange.images WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   );
@@ -58,7 +58,7 @@ export async function listImagesByUser(userId) {
 }
 
 export async function deleteImage(user_id, id) {
-  await pool.query(
+  await query(
     'DELETE FROM exchange.images WHERE id = $1 AND user_id = $2',
     [id, user_id]
   );
