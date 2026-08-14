@@ -1,4 +1,4 @@
-import * as pdfRepo from "#features/pdf/repo.js";
+import * as pdfService from "#features/pdf/service.js";
 
 import {
   renderPurchaseOrderPlacedEmail,
@@ -18,7 +18,7 @@ export async function sendCreatedEmail({
   packageDetails,
   payoutDetails,
 }) {
-  const pdfBuffer = await pdfRepo.generatePackingList({
+  const pdfBuffer = await pdfService.generatePackingList({
     purchaseOrder,
     spotPrices,
     packageDetails,
@@ -52,7 +52,7 @@ export async function sendAcceptedEmail({
 }) {
   let pdfBuffer;
   try {
-    pdfBuffer = await pdfRepo.generateInvoice({
+    pdfBuffer = await pdfService.generateInvoice({
       purchaseOrder: order,
       orderSpots: order_spots,
       spotPrices: spot_prices,
@@ -87,7 +87,7 @@ export async function sendAcceptedEmail({
 export async function sendSalesOrderToSupplier(order, spots, email) {
   let pdfBuffer;
   try {
-    pdfBuffer = await pdfRepo.generateSalesOrderInvoice({
+    pdfBuffer = await pdfService.generateSalesOrderInvoice({
       salesOrder: order,
       spots,
     });
