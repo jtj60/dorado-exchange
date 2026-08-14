@@ -1,50 +1,30 @@
+import { asyncHandler } from "#shared/middleware/asyncHandler.js";
 import * as carriersRepo from "#features/shipping/carriers/repo.js";
 
-export async function getAll(req, res, next) {
-  try {
-    const result = await carriersRepo.getAll();
-    return res.status(200).json(result);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getAll = asyncHandler(async (req, res) => {
+  const result = await carriersRepo.getAll();
+  return res.status(200).json(result);
+});
 
-export async function getOne(req, res, next) {
-  try {
-    const { id } = req.query;
-    const result = await carriersRepo.getById(id);
-    return res.status(200).json(result);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getOne = asyncHandler(async (req, res) => {
+  const { id } = req.query;
+  const result = await carriersRepo.getById(id);
+  return res.status(200).json(result);
+});
 
-export async function create(req, res, next) {
-  try {
-    const { carrier } = req.body
-    const result = await carriersRepo.create(carrier);
+export const create = asyncHandler(async (req, res) => {
+  const { carrier } = req.body;
+  const result = await carriersRepo.create(carrier);
+  return res.status(201).json(result);
+});
 
-    return res.status(201).json(result);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const update = asyncHandler(async (req, res) => {
+  const { carrier } = req.body;
+  const result = await carriersRepo.update(carrier);
+  return res.status(200).json(result);
+});
 
-export async function update(req, res, next) {
-  try {
-    const { carrier } = req.body
-    const result = await carriersRepo.update(carrier);
-    return res.status(200).json(result);
-  } catch (err) {
-    return next(err);
-  }
-}
-
-export async function remove(req, res, next) {
-  try {
-    await carriersRepo.remove(req.body);
-    return res.status(200).json(true);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const remove = asyncHandler(async (req, res) => {
+  await carriersRepo.remove(req.body);
+  return res.status(200).json(true);
+});

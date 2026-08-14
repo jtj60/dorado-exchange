@@ -11,7 +11,6 @@ export async function cancelLabel({ shipment_id, carrier_id }) {
     await client.query("BEGIN");
 
     const shipment = await shipmentRepo.getById(shipment_id, client);
-    console.log(shipment);
 
     await shippingHandler.cancelLabel(carrier_id, client, {
       trackingNumber: shipment.tracking_number,

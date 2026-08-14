@@ -1,7 +1,8 @@
+import { asyncHandler } from "#shared/middleware/asyncHandler.js";
 import stripeClient from "#features/stripe/client.js"
 import * as stripeService from "#features/stripe/service.js"
 
-export async function handleStripeWebhook(req, res) {
+export const handleStripeWebhook = asyncHandler(async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -119,49 +120,33 @@ export async function handleStripeWebhook(req, res) {
   }
 
   res.json({ received: true });
-}
+});
 
-export async function retrievePaymentIntent(req, res, next) {
-  try {
-    const paymentIntent = await stripeService.retrievePaymentIntent(
-      req.query.type,
-      req.query.user_id,
-      req.headers
-    );
-    res.json(paymentIntent.client_secret);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const retrievePaymentIntent = asyncHandler(async (req, res) => {
+  const paymentIntent = await stripeService.retrievePaymentIntent(
+    req.query.type,
+    req.query.user_id,
+    req.headers
+  );
+  res.json(paymentIntent.client_secret);
+});
 
-export async function updatePaymentIntent(req, res, next) {
-  try {
-    const paymentIntent = await stripeService.updatePaymentIntent(
-      req.body,
-      req.headers
-    );
-    res.json(paymentIntent.client_secret);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const updatePaymentIntent = asyncHandler(async (req, res) => {
+  const paymentIntent = await stripeService.updatePaymentIntent(
+    req.body,
+    req.headers
+  );
+  res.json(paymentIntent.client_secret);
+});
 
-export async function getPaymentIntentFromSalesOrderId(req, res, next) {
-  try {
-    const paymentIntent = await stripeService.getPaymentIntentFromSalesOrderId(
-      req.query
-    );
-    res.json(paymentIntent);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getPaymentIntentFromSalesOrderId = asyncHandler(async (req, res) => {
+  const paymentIntent = await stripeService.getPaymentIntentFromSalesOrderId(
+    req.query
+  );
+  res.json(paymentIntent);
+});
 
-export async function cancelPaymentIntent(req, res, next) {
-  try {
-    const paymentIntent = await stripeService.cancelPaymentIntent(req.body);
-    res.json(paymentIntent);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const cancelPaymentIntent = asyncHandler(async (req, res) => {
+  const paymentIntent = await stripeService.cancelPaymentIntent(req.body);
+  res.json(paymentIntent);
+});

@@ -51,8 +51,6 @@ export async function create(shipment, client) {
 }
 
 export async function update(shipment, client) {
-
-  console.log(shipment)
   const q = `
     UPDATE exchange.shipments
     SET

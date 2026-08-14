@@ -1,26 +1,22 @@
 import pool from "#db";
 import axios from "axios";
+import { asyncHandler } from "#shared/middleware/asyncHandler.js";
 
-export async function getSpotPrices (req, res) {
-  try {
-    const result = await pool.query(
-      `SELECT id, type, ask_spot, bid_spot, percent_change, dollar_change
-       FROM exchange.metals
-       ORDER BY
-         CASE type
-           WHEN 'Gold' THEN 1
-           WHEN 'Silver' THEN 2
-           WHEN 'Platinum' THEN 3
-           WHEN 'Palladium' THEN 4
-           ELSE 5
-         END`
-    );
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error("Error fetching spot prices:", error);
-    res.status(500).json({ error: "Failed to fetch spot prices." });
-  }
-};
+export const getSpotPrices = asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    `SELECT id, type, ask_spot, bid_spot, percent_change, dollar_change
+     FROM exchange.metals
+     ORDER BY
+       CASE type
+         WHEN 'Gold' THEN 1
+         WHEN 'Silver' THEN 2
+         WHEN 'Platinum' THEN 3
+         WHEN 'Palladium' THEN 4
+         ELSE 5
+       END`
+  );
+  res.status(200).json(result.rows);
+});
 
 export async function updateSpotPrices () {
   try {
