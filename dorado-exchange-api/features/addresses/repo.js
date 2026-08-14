@@ -1,4 +1,4 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function list(userId) {
   const q = `
@@ -7,7 +7,7 @@ export async function list(userId) {
     WHERE user_id = $1
     ORDER BY is_default DESC;
   `;
-  const { rows } = await pool.query(q, [userId]);
+  const { rows } = await query(q, [userId]);
   return rows;
 }
 
@@ -18,7 +18,7 @@ export async function getFromId(address_id) {
     WHERE id = $1
     ORDER BY is_default DESC;
   `;
-  const { rows } = await pool.query(q, [address_id]);
+  const { rows } = await query(q, [address_id]);
   return rows;
 }
 
@@ -40,7 +40,7 @@ export async function isActive({ addressId, userId }) {
     ) AS locked;
   `;
 
-  const { rows } = await pool.query(q, [addressId, userId]);
+  const { rows } = await query(q, [addressId, userId]);
   return rows[0]?.locked === true;
 }
 
@@ -70,7 +70,7 @@ export async function create({ address, userId }) {
     false,
   ];
 
-  const { rows } = await pool.query(q, values);
+  const { rows } = await query(q, values);
   return rows[0];
 }
 
@@ -109,7 +109,7 @@ export async function update({ address, userId }) {
     false,
   ];
 
-  const { rows } = await pool.query(q, values);
+  const { rows } = await query(q, values);
   return rows[0];
 }
 
@@ -120,7 +120,7 @@ export async function updateValidation({ addressId, is_valid, is_residential }) 
     WHERE id = $3
     RETURNING *;
   `;
-  const { rows } = await pool.query(q, [is_valid, is_residential, addressId]);
+  const { rows } = await query(q, [is_valid, is_residential, addressId]);
   return rows[0];
 }
 
@@ -129,7 +129,7 @@ export async function remove({ addressId, userId }) {
     DELETE FROM exchange.addresses
     WHERE id = $1 AND user_id = $2;
   `;
-  await pool.query(q, [addressId, userId]);
+  await query(q, [addressId, userId]);
   return true;
 }
 
@@ -139,6 +139,6 @@ export async function setDefault({ userId, addressId }) {
     SET is_default = CASE WHEN id = $2 THEN TRUE ELSE FALSE END
     WHERE user_id = $1;
   `;
-  await pool.query(q, [userId, addressId]);
+  await query(q, [userId, addressId]);
   return true;
 }

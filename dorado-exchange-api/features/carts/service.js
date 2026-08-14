@@ -1,4 +1,4 @@
-import pool from '#db';
+import withTransaction from "#shared/db/withTransaction.js";
 import * as cartRepo from "#features/carts/repo.js"
 
 export async function getCart(user_id) {
@@ -6,10 +6,7 @@ export async function getCart(user_id) {
 }
 
 export async function syncCart(user_id, items) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
+  return withTransaction(async (client) => {
     const newCart = await cartRepo.createNew(user_id, client);
     let cart_id = newCart.id ?? '';
     if (!newCart.id) {
@@ -19,15 +16,8 @@ export async function syncCart(user_id, items) {
     await cartRepo.clearCart(cart_id, client);
     await cartRepo.addItems(items, cart_id, client);
 
-    await client.query('COMMIT');
-
     return 'Cart Synced';
-  } catch (error) {
-    await client.query('ROLLBACK');
-    return error;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function getSellCart(user_id) {
@@ -73,10 +63,7 @@ export async function syncSellCart(user_id, cart) {
     throw err;
   }
 
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
+  return withTransaction(async (client) => {
     const cartId = await cartRepo.ensureSellCart(user_id, client);
 
     await cartRepo.clearSellCartItems(cartId, client);
@@ -109,13 +96,7 @@ export async function syncSellCart(user_id, cart) {
 
     await cartRepo.deleteOrphanScrap(client);
 
-    await client.query("COMMIT");
     return "Sell Cart Synced";
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
+  });
 }
 

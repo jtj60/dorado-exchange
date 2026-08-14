@@ -1,55 +1,32 @@
+import { asyncHandler } from "#shared/middleware/asyncHandler.js";
 import * as reviewService from "#features/reviews/service.js"
 
-export async function getOne(req, res, next) {
-  try {
-    const review = await reviewService.getReview(req.query.review_id);
-    return res.status(200).json(review);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getOne = asyncHandler(async (req, res) => {
+  const review = await reviewService.getReview(req.query.review_id);
+  return res.status(200).json(review);
+});
 
-export async function getAll(req, res, next) {
-  try {
-    const reviews = await reviewService.getAllReviews();
-    return res.status(200).json(reviews);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getAll = asyncHandler(async (req, res) => {
+  const reviews = await reviewService.getAllReviews();
+  return res.status(200).json(reviews);
+});
 
-export async function getPublic(req, res, next) {
-  try {
-    const reviews = await reviewService.getPublicReviews();
-    return res.status(200).json(reviews);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const getPublic = asyncHandler(async (req, res) => {
+  const reviews = await reviewService.getPublicReviews();
+  return res.status(200).json(reviews);
+});
 
-export async function createReview(req, res, next) {
-  try {
-    const review = await reviewService.createReview(req.body.review);
-    return res.status(200).json(review);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const createReview = asyncHandler(async (req, res) => {
+  const review = await reviewService.createReview(req.body.review);
+  return res.status(200).json(review);
+});
 
-export async function updateReview(req, res, next) {
-  try {
-    const review = await reviewService.updateReview(req.body.review, req.body.user_name);
-    return res.status(200).json(review);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const updateReview = asyncHandler(async (req, res) => {
+  const review = await reviewService.updateReview(req.body.review, req.body.user_name);
+  return res.status(200).json(review);
+});
 
-export async function deleteReview(req, res, next) {
-  try {
-    const review = await reviewService.deleteReview(req.body.review_id,);
-    return res.status(200).json(review);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const deleteReview = asyncHandler(async (req, res) => {
+  const review = await reviewService.deleteReview(req.body.review_id);
+  return res.status(200).json(review);
+});

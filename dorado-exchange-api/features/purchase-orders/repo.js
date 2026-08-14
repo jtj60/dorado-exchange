@@ -1,120 +1,59 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 import { calculateItemPrice } from '#features/purchase-orders/utils/calculations.js';
 
-export async function findAllByUser(userId) {
-  const query = `
-    SELECT 
-      po.*,
-      json_agg(DISTINCT jsonb_build_object(
-        'id', poi.id,
-        'purchase_order_id', poi.purchase_order_id,
-        'price', poi.price,
-        'quantity', poi.quantity,
-        'confirmed', poi.confirmed,
-        'premium', poi.premium,
-        'refiner_premium', poi.refiner_premium,
-        'item_type', CASE 
-          WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
-          WHEN poi.product_id IS NOT NULL THEN 'product'
-          ELSE 'unknown'
-        END,
-        'scrap', jsonb_build_object(
-          'id', s.id,
-          'pre_melt', s.pre_melt,
-          'post_melt', s.post_melt,
-          'purity', s.purity,
-          'content', s.content,
-          'gross_unit', s.gross_unit,
-          'metal', ms.type,
-          'bid_premium', s.bid_premium
-        ),
-        'product', jsonb_build_object(
-          'id', p.id,
-          'product_name', p.product_name,
-          'content', p.content,
-          'product_type', p.product_type,
-          'image_front', p.image_front,
-          'image_back', p.image_back,
-          'bid_premium', p.bid_premium,
-          'ask_premium', p.ask_premium,
-          'variant_group', p.variant_group,
-          'shadow_offset', p.shadow_offset,
-          'metal_type', mp.type
-        )
-      )) AS order_items,
-        to_jsonb(addr) AS address,
-       jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
-      to_jsonb(cp) AS carrier_pickup,
-      to_jsonb(pay) AS payout,
-      jsonb_build_object(
-        'user_id', u.id,
-        'user_name', u.name,
-        'user_email', u.email
-      ) AS "user"
-    FROM exchange.purchase_orders po
-    LEFT JOIN exchange.purchase_order_items poi ON poi.purchase_order_id = po.id
-    LEFT JOIN exchange.scrap s ON poi.scrap_id = s.id
-    LEFT JOIN exchange.products p ON poi.product_id = p.id
-    LEFT JOIN exchange.metals ms ON s.metal_id = ms.id
-    LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
-    LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
-    LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
-    LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
-    LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
-    LEFT JOIN exchange.users u ON u.id = po.user_id
-    WHERE po.user_id = $1
-    GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-    ORDER BY po.created_at DESC;
-  `;
-  const { rows } = await pool.query(query, [userId]);
-  return rows;
-}
+// The three order lookups below differ only in how they select rows, so the
+// projection and joins are built once here. They previously existed as three
+// near-identical 110-line queries that had already drifted apart.
 
-export async function findById(id) {
-  const query = `
-    SELECT 
+// Shipments are joined twice per order (inbound and return), so the same
+// projection is emitted for each alias.
+const shipmentJson = (alias) => `
+      jsonb_build_object(
+        'id', ${alias}.id,
+        'purchase_order_id', ${alias}.purchase_order_id,
+        'sales_order_id', ${alias}.sales_order_id,
+        'tracking_number', ${alias}.tracking_number,
+        'shipping_status', ${alias}.shipping_status,
+        'estimated_delivery', ${alias}.estimated_delivery,
+        'shipped_at', ${alias}.shipped_at,
+        'delivered_at', ${alias}.delivered_at,
+        'created_at', ${alias}.created_at,
+        'label_type', ${alias}.label_type,
+        'pickup_type', ${alias}.pickup_type,
+        'package', ${alias}.package,
+        'shipping_label', encode(${alias}.shipping_label, 'base64'),
+        'shipping_charge', ${alias}.net_charge,
+        'shipping_service', ${alias}.service_type,
+        'insured', ${alias}.insured,
+        'declared_value', ${alias}.declared_value,
+        'type', ${alias}.type,
+        'carrier_id', ${alias}.carrier_id
+      )`;
+
+// The post-melt assay figures are admin-only, so customer-facing lookups omit
+// them. Only the admin getAll() query passes withActuals.
+const scrapJson = (withActuals) => `
+        jsonb_build_object(
+          'id', s.id,
+          'pre_melt', s.pre_melt,
+          'post_melt', s.post_melt,
+          'purity', s.purity,
+          'content', s.content,
+          'gross_unit', s.gross_unit,
+          'metal', ms.type,
+          'bid_premium', s.bid_premium${
+            withActuals
+              ? `,
+          'purity_actual', s.purity_actual,
+          'post_melt_actual', s.post_melt_actual,
+          'content_actual', s.content_actual`
+              : ""
+          }
+        )`;
+
+function buildOrderQuery({ where = "", limit = "", withActuals = false } = {}) {
+  return `
+    SELECT
       po.*,
       json_agg(DISTINCT jsonb_build_object(
         'id', poi.id,
@@ -124,21 +63,12 @@ export async function findById(id) {
         'confirmed', poi.confirmed,
         'premium', poi.premium,
         'refiner_premium', poi.refiner_premium,
-        'item_type', CASE 
+        'item_type', CASE
           WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
           WHEN poi.product_id IS NOT NULL THEN 'product'
           ELSE 'unknown'
         END,
-        'scrap', jsonb_build_object(
-          'id', s.id,
-          'pre_melt', s.pre_melt,
-          'post_melt', s.post_melt,
-          'purity', s.purity,
-          'content', s.content,
-          'gross_unit', s.gross_unit,
-          'metal', ms.type,
-          'bid_premium', s.bid_premium
-        ),
+        'scrap', ${scrapJson(withActuals)},
         'product', jsonb_build_object(
           'id', p.id,
           'product_name', p.product_name,
@@ -154,48 +84,8 @@ export async function findById(id) {
         )
       )) AS order_items,
       to_jsonb(addr) AS address,
-      jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
+      ${shipmentJson("ship")} AS shipment,
+      ${shipmentJson("ret")} AS return_shipment,
       to_jsonb(cp) AS carrier_pickup,
       to_jsonb(pay) AS payout,
       jsonb_build_object(
@@ -211,135 +101,39 @@ export async function findById(id) {
     LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
     LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
     LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
+    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ret.type = 'Return'
     LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
     LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
     LEFT JOIN exchange.users u ON u.id = po.user_id
-    WHERE po.id = $1
+    ${where}
     GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-    ORDER BY po.created_at DESC
-    LIMIT 1;
+    ORDER BY po.created_at DESC${limit};
   `;
-  const { rows } = await pool.query(query, [id]);
+}
+
+export async function findAllByUser(userId) {
+  const { rows } = await query(
+    buildOrderQuery({ where: "WHERE po.user_id = $1" }),
+    [userId]
+  );
+  return rows;
+}
+
+export async function findById(id) {
+  const { rows } = await query(
+    buildOrderQuery({ where: "WHERE po.id = $1", limit: "\n    LIMIT 1" }),
+    [id]
+  );
   return rows[0] || null;
 }
 
 export async function getAll() {
-  const query = `
-      SELECT 
-        po.*,
-        json_agg(DISTINCT jsonb_build_object(
-          'id', poi.id,
-          'purchase_order_id', poi.purchase_order_id,
-          'price', poi.price,
-          'quantity', poi.quantity,
-          'confirmed', poi.confirmed,
-          'premium', poi.premium,
-          'refiner_premium', poi.refiner_premium,
-          'item_type', CASE 
-            WHEN poi.scrap_id IS NOT NULL THEN 'scrap'
-            WHEN poi.product_id IS NOT NULL THEN 'product'
-            ELSE 'unknown'
-          END,
-          'scrap', jsonb_build_object(
-            'id', s.id,
-            'pre_melt', s.pre_melt,
-            'post_melt', s.post_melt,
-            'purity', s.purity,
-            'content', s.content,
-            'gross_unit', s.gross_unit,
-            'metal', ms.type,
-            'bid_premium', s.bid_premium,
-            'purity_actual', s.purity_actual,
-            'post_melt_actual', s.post_melt_actual,
-            'content_actual', s.content_actual
-          ),
-          'product', jsonb_build_object(
-            'id', p.id,
-            'product_name', p.product_name,
-            'content', p.content,
-            'product_type', p.product_type,
-            'image_front', p.image_front,
-            'image_back', p.image_back,
-            'bid_premium', p.bid_premium,
-            'ask_premium', p.ask_premium,
-            'variant_group', p.variant_group,
-            'shadow_offset', p.shadow_offset,
-            'metal_type', mp.type
-          )
-        )) AS order_items,
-        to_jsonb(addr) AS address,
-      jsonb_build_object(
-        'id', ship.id,
-        'purchase_order_id', ship.purchase_order_id,
-        'sales_order_id', ship.sales_order_id,
-        'tracking_number', ship.tracking_number,
-        'shipping_status', ship.shipping_status,
-        'estimated_delivery', ship.estimated_delivery,
-        'shipped_at', ship.shipped_at,
-        'delivered_at', ship.delivered_at,
-        'created_at', ship.created_at,
-        'label_type', ship.label_type,
-        'pickup_type', ship.pickup_type,
-        'package', ship.package,
-        'shipping_label', encode(ship.shipping_label, 'base64'),
-        'shipping_charge', ship.net_charge,
-        'shipping_service', ship.service_type,
-        'insured', ship.insured,
-        'declared_value', ship.declared_value,
-        'type', ship.type,
-        'carrier_id', ship.carrier_id
-      ) AS shipment,
-      jsonb_build_object(
-        'id', ret.id,
-        'purchase_order_id', ret.purchase_order_id,
-        'sales_order_id', ret.sales_order_id,
-        'tracking_number', ret.tracking_number,
-        'shipping_status', ret.shipping_status,
-        'estimated_delivery', ret.estimated_delivery,
-        'shipped_at', ret.shipped_at,
-        'delivered_at', ret.delivered_at,
-        'created_at', ret.created_at,
-        'label_type', ret.label_type,
-        'pickup_type', ret.pickup_type,
-        'package', ret.package,
-        'shipping_label', encode(ret.shipping_label, 'base64'),
-        'shipping_charge', ret.net_charge,
-        'shipping_service', ret.service_type,
-        'insured', ret.insured,
-        'declared_value', ret.declared_value,
-        'type', ret.type,
-        'carrier_id', ret.carrier_id
-      ) AS return_shipment,
-      to_jsonb(cp) AS carrier_pickup,
-      to_jsonb(pay) AS payout,
-      jsonb_build_object(
-        'user_id', u.id,
-        'user_name', u.name,
-        'user_email', u.email
-      ) AS "user"
-    FROM exchange.purchase_orders po
-    LEFT JOIN exchange.purchase_order_items poi ON poi.purchase_order_id = po.id
-    LEFT JOIN exchange.scrap s ON poi.scrap_id = s.id
-    LEFT JOIN exchange.products p ON poi.product_id = p.id
-    LEFT JOIN exchange.metals ms ON s.metal_id = ms.id
-    LEFT JOIN exchange.metals mp ON p.metal_id = mp.id
-    LEFT JOIN exchange.addresses addr ON addr.id = po.address_id
-    LEFT JOIN exchange.shipments ship ON ship.purchase_order_id = po.id AND ship.type = 'Inbound'
-    LEFT JOIN exchange.shipments ret ON ret.purchase_order_id = po.id AND ship.type = 'Return'
-      LEFT JOIN exchange.carrier_pickups cp ON cp.order_id = po.id
-      LEFT JOIN exchange.payouts pay ON pay.order_id = po.id
-      LEFT JOIN exchange.users u ON u.id = po.user_id
-      GROUP BY po.id, addr.id, ship.id, ret.id, cp.id, pay.id, u.id
-      ORDER BY po.created_at DESC;
-    `;
-
-  const { rows } = await pool.query(query, []);
+  const { rows } = await query(buildOrderQuery({ withActuals: true }), []);
   return rows;
 }
 
 export async function findMetalsByOrderId(orderId) {
-  const query = `
+  const sql = `
     SELECT 
       id,
       purchase_order_id,
@@ -354,14 +148,14 @@ export async function findMetalsByOrderId(orderId) {
     WHERE purchase_order_id = $1
     ORDER BY type ASC;
   `;
-  const { rows } = await pool.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId]);
   return rows;
 }
 
 export async function updateOrderMetals(orderId, spotPrices, client) {
   const updates = await Promise.all(
     spotPrices.map(async (spot) => {
-      const query = `
+      const sql = `
         UPDATE exchange.order_metals
         SET bid_spot = $1
         WHERE purchase_order_id = $2
@@ -369,7 +163,7 @@ export async function updateOrderMetals(orderId, spotPrices, client) {
         RETURNING *;
       `;
       const vals = [spot.bid_spot, orderId, spot.type];
-      const { rows } = await client.query(query, vals);
+      const { rows } = await query(sql, vals, client);
       return rows[0];
     })
   );
@@ -380,19 +174,19 @@ export async function updateOrderItemPrices(orderId, items, spotRows, client) {
   await Promise.all(
     items.map((item) => {
       const price = calculateItemPrice(item, spotRows);
-      const query = `
+      const sql = `
         UPDATE exchange.purchase_order_items
         SET price = $1
         WHERE id = $2
         AND purchase_order_id = $3;
       `;
-      return client.query(query, [price, item.id, orderId]);
+      return query(sql, [price, item.id, orderId], client);
     })
   );
 }
 
 export async function moveOrderToAccepted(orderId, totalPrice, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET offer_status = $1,
         purchase_order_status = $2,
@@ -400,11 +194,11 @@ export async function moveOrderToAccepted(orderId, totalPrice, client) {
         spots_locked = TRUE
     WHERE id = $4;
   `;
-  await client.query(query, ["Accepted", "Accepted", totalPrice, orderId]);
+  await query(sql, ["Accepted", "Accepted", totalPrice, orderId], client);
 }
 
 export async function rejectOfferById(orderId, offerNotes, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET 
       purchase_order_status = $1,
@@ -415,12 +209,12 @@ export async function rejectOfferById(orderId, offerNotes, client) {
     RETURNING *;
   `;
   const vals = ["Rejected", "Rejected", offerNotes, orderId];
-  const { rows } = await client.query(query, vals);
+  const { rows } = await query(sql, vals, client);
   return rows[0];
 }
 
 export async function cancelOrderById(orderId, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET
       purchase_order_status = $1,
@@ -430,56 +224,56 @@ export async function cancelOrderById(orderId, client) {
     RETURNING *;
   `;
   const vals = ["Cancelled", "Cancelled", orderId];
-  const { rows } = await client.query(query, vals);
+  const { rows } = await query(sql, vals, client);
   return rows[0];
 }
 
 export async function clearOrderMetals(orderId, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.order_metals
     SET bid_spot = NULL
     WHERE purchase_order_id = $1;
   `;
-  return client.query(query, [orderId]);
+  return query(sql, [orderId], client);
 }
 
 export async function updateOfferNotes(order, offer_notes) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET offer_notes = $1
     WHERE id = $2
     RETURNING *;
   `;
   const values = [offer_notes, order.id];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
 
   return rows[0];
 }
 
 export async function createReview({order}) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET review_created = true
     WHERE id = $1
     RETURNING *;
   `;
   const values = [order.id];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function insertOrder(client, { userId, addressId, status }) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.purchase_orders (user_id, address_id, purchase_order_status)
     VALUES ($1, $2, $3)
     RETURNING id;
   `;
-  const { rows } = await client.query(query, [userId, addressId, status]);
+  const { rows } = await query(sql, [userId, addressId, status], client);
   return rows[0].id;
 }
 
 export async function insertItems(client, orderId, items) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.purchase_order_items
       (purchase_order_id, scrap_id, product_id, quantity, premium)
     VALUES
@@ -487,13 +281,13 @@ export async function insertItems(client, orderId, items) {
   `;
 
   for (const { type, data } of items) {
-    await client.query(query, [
+    await query(sql, [
       orderId,
       type === "scrap" ? data.id : null,
       type === "product" ? data.id : null,
       data.quantity ?? 1,
       data.bid_premium ?? 0.75,
-    ]);
+    ], client);
   }
 }
 
@@ -502,17 +296,17 @@ export async function insertOrderMetals(
   orderId,
   metals = ["Gold", "Silver", "Platinum", "Palladium"]
 ) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.order_metals (purchase_order_id, type)
     VALUES ($1, $2)
   `;
   for (const metal of metals) {
-    await client.query(query, [orderId, metal]);
+    await query(sql, [orderId, metal], client);
   }
 }
 
 export async function insertPayout(client, orderId, payout) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.payouts (
       user_id,
       order_id,
@@ -539,32 +333,32 @@ export async function insertPayout(client, orderId, payout) {
     payout.payout_email || null,
     payout.cost || 0,
   ];
-  await client.query(query, vals);
+  await query(sql, vals, client);
 }
 
 export async function clearItemPrices(client, orderId) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_order_items
       SET price = NULL
     WHERE purchase_order_id = $1;
   `;
-  return client.query(query, [orderId]);
+  return query(sql, [orderId], client);
 }
 
 export async function resetOrderTotal(client, orderId) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
       SET total_price = NULL
     WHERE id = $1;
   `;
-  return client.query(query, [orderId]);
+  return query(sql, [orderId], client);
 }
 
 export async function updateOffer(
   client,
   { orderId, sentAt, expiresAt, offerStatus, updated_by }
 ) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
       SET
         offer_status = $1,
@@ -576,12 +370,12 @@ export async function updateOffer(
     RETURNING *;
   `;
   const values = [offerStatus, sentAt, expiresAt, updated_by, orderId];
-  const { rows } = await client.query(query, values);
+  const { rows } = await query(sql, values, client);
   return rows[0];
 }
 
 export async function updateStatus(order, order_status, user_name) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET
       purchase_order_status = $1,
@@ -592,22 +386,22 @@ export async function updateStatus(order, order_status, user_name) {
   `;
 
   const values = [order_status, user_name, order.id];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function toggleSpots(locked, order_id, client) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET spots_locked = $1
     WHERE id = $2
   `;
   const values = [locked, order_id];
-  return await client.query(query, values);
+  return await query(sql, values, client);
 }
 
 export async function updateSpot({ spot, updated_spot }) {
-  const query = `
+  const sql = `
     UPDATE exchange.order_metals
     SET bid_spot = $1 
     WHERE purchase_order_id = $2
@@ -615,11 +409,11 @@ export async function updateSpot({ spot, updated_spot }) {
     RETURNING *;
   `;
   const values = [updated_spot, spot.purchase_order_id, spot.type];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function toggleOrderItemStatus({ item_status, ids, purchase_order_id }) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_order_items
     SET confirmed = $1
     WHERE purchase_order_id = $2
@@ -627,21 +421,21 @@ export async function toggleOrderItemStatus({ item_status, ids, purchase_order_i
     RETURNING *;
   `;
   const values = [item_status, purchase_order_id, ids];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function deleteOrderItems(ids) {
-  const query = `
+  const sql = `
     DELETE FROM exchange.purchase_order_items
     WHERE id = ANY($1::uuid[])
     RETURNING *;
   `;
   const values = [ids];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function createOrderItem(item, purchase_order_id, scrap_id, client) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.purchase_order_items (
       purchase_order_id, scrap_id, product_id, quantity, confirmed
     )
@@ -649,11 +443,11 @@ export async function createOrderItem(item, purchase_order_id, scrap_id, client)
     RETURNING *
   `;
   const values = [purchase_order_id, scrap_id, item?.id ?? null, 1, false];
-  return await client.query(query, values);
+  return await query(sql, values, client);
 }
 
 export async function updateBullion(item) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_order_items
     SET quantity = $1, premium = $2
     WHERE id = $3
@@ -661,72 +455,72 @@ export async function updateBullion(item) {
   `;
 
   const values = [item.quantity, item.premium, item.id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function findExpiredOffers() {
-  const query = `
+  const sql = `
     SELECT * FROM exchange.purchase_orders
     WHERE offer_status = 'Sent'
       AND offer_expires_at IS NOT NULL
       AND offer_expires_at < NOW();
   `;
-  const { rows } = await pool.query(query);
+  const { rows } = await query(sql);
   return rows;
 }
 
 export async function getCurrentSpotPrices(client) {
-  const { rows } = await client.query(`
+  const { rows } = await query(`
     SELECT type, bid_spot FROM exchange.metals;
-  `);
+  `, client);
   return rows;
 }
 
 export async function editShippingCharge(order_id, shipping_charge) {
-  const query = `
+  const sql = `
   UPDATE exchange.shipments
   SET net_charge = $1
   WHERE purchase_order_id = $2
   RETURNING *;
   `;
   const values = [shipping_charge, order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function editPayoutCharge(order_id, shipping_charge) {
-  const query = `
+  const sql = `
   UPDATE exchange.payouts
   SET cost = $1
   WHERE order_id = $2
   RETURNING *;
   `;
   const values = [shipping_charge, order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function changePayoutMethod(order_id, method) {
-  const query = `
+  const sql = `
   UPDATE exchange.payouts
   SET method = $1
   WHERE order_id = $2
   RETURNING *;
   `;
   const values = [method, order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function purgeCancelled() {
-  const query = `
+  const sql = `
     DELETE FROM exchange.purchase_orders
     WHERE purchase_order_status = 'Cancelled'
   `
-  return await pool.query(query, [])
+  return await query(sql, [])
 }
 
 export async function updateRefinerMetals(orderId, spotPrices, client) {
   const updates = await Promise.all(
     spotPrices.map(async (spot) => {
-      const query = `
+      const sql = `
         UPDATE exchange.refiner_metals
         SET bid_spot = $1
         WHERE purchase_order_id = $2
@@ -734,7 +528,7 @@ export async function updateRefinerMetals(orderId, spotPrices, client) {
         RETURNING *;
       `;
       const vals = [spot.bid_spot, orderId, spot.type];
-      const { rows } = await client.query(query, vals);
+      const { rows } = await query(sql, vals, client);
       return rows[0];
     })
   );
@@ -742,7 +536,7 @@ export async function updateRefinerMetals(orderId, spotPrices, client) {
 }
 
 export async function findRefinerMetalsByOrderId(orderId) {
-  const query = `
+  const sql = `
     SELECT 
       id,
       purchase_order_id,
@@ -757,7 +551,7 @@ export async function findRefinerMetalsByOrderId(orderId) {
     WHERE purchase_order_id = $1
     ORDER BY type ASC;
   `;
-  const { rows } = await pool.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId]);
   return rows;
 }
 
@@ -766,18 +560,18 @@ export async function insertRefinerMetals(
   orderId,
   metals = ["Gold", "Silver", "Platinum", "Palladium"]
 ) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.refiner_metals (purchase_order_id, type)
     VALUES ($1, $2)
   `;
   for (const metal of metals) {
-    await client.query(query, [orderId, metal]);
+    await query(sql, [orderId, metal], client);
   }
 }
 
 export async function updateRefinerSpot({ spot, updated_spot }) {
 
-  const query = `
+  const sql = `
     UPDATE exchange.refiner_metals
     SET bid_spot = $1 
     WHERE purchase_order_id = $2
@@ -785,79 +579,79 @@ export async function updateRefinerSpot({ spot, updated_spot }) {
     RETURNING *;
   `;
   const values = [updated_spot, spot.purchase_order_id, spot.type];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
-export async function updatePremium(item_id, premium, executor = pool) {
-  const query = `
+export async function updatePremium(item_id, premium, executor) {
+  const sql = `
     UPDATE exchange.purchase_order_items
     SET premium = $1
     WHERE id = $2
   `;
   const values = [premium, item_id];
-  return await executor.query(query, values);
+  return await query(sql, values, executor);
 }
 
 // Scrap line items on an order with the metal + estimated content needed to
 // re-tier their premiums from the rates table.
-export async function findOrderScrapItems(orderId, executor = pool) {
-  const query = `
+export async function findOrderScrapItems(orderId, executor) {
+  const sql = `
     SELECT poi.id, ms.type AS metal, s.content
     FROM exchange.purchase_order_items poi
     JOIN exchange.scrap s ON poi.scrap_id = s.id
     JOIN exchange.metals ms ON s.metal_id = ms.id
     WHERE poi.purchase_order_id = $1
   `;
-  const { rows } = await executor.query(query, [orderId]);
+  const { rows } = await query(sql, [orderId], executor);
   return rows;
 }
 
 export async function updateRefinerPremium(item_id, refiner_premium) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_order_items
     SET refiner_premium = $1
     WHERE id = $2
   `;
   const values = [refiner_premium, item_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function updateShippingActual(purchase_order_id, shipping_fee_actual) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET shipping_fee_actual = $1
     WHERE id = $2
   `;
   const values = [shipping_fee_actual, purchase_order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function updateRefinerFee(purchase_order_id, refiner_fee) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET refiner_fee = $1
     WHERE id = $2
   `;
   const values = [refiner_fee, purchase_order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function updatePoolOzDeducted(purchase_order_id, pool_oz_deducted) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET pool_oz_deducted = $1
     WHERE id = $2
   `;
   const values = [pool_oz_deducted, purchase_order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }
 
 export async function updatePoolRemediation(purchase_order_id, pool_remediation) {
-  const query = `
+  const sql = `
     UPDATE exchange.purchase_orders
     SET pool_remediation = $1
     WHERE id = $2
   `;
   const values = [pool_remediation, purchase_order_id];
-  return await pool.query(query, values);
+  return await query(sql, values);
 }

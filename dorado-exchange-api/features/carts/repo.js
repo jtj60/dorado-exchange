@@ -1,8 +1,8 @@
 import { PRODUCT_FIELDS, PRODUCT_FIELDS_WITH_ALIAS } from "#features/products/constants.js";
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function getCart(user_id) {
-  const query = `
+  const sql = `
     SELECT 
       ci.id AS cart_item_id, 
       ci.product_id, 
@@ -19,33 +19,33 @@ export async function getCart(user_id) {
     );
   `;
   const values = [user_id];
-  const result = pool.query(query, values);
+  const result = query(sql, values);
   return result.rows;
 }
 
 export async function createNew(user_id, client) {
-  const query = `
+  const sql = `
     INSERT INTO exchange.carts (id, user_id)
     VALUES (gen_random_uuid(), $1)
     ON CONFLICT (user_id) DO NOTHING
     RETURNING id
   `;
   const values = [user_id];
-  const result = client.query(query, values);
+  const result = query(sql, values, client);
   return result.rows[0];
 }
 
 export async function getCartId(user_id, client) {
-  const query = `SELECT id FROM exchange.carts WHERE user_id = $1`;
+  const sql = `SELECT id FROM exchange.carts WHERE user_id = $1`;
   const values = [user_id];
-  const result = await client.query(query, values);
+  const result = await query(sql, values, client);
   return result.rows[0];
 }
 
 export async function clearCart(cart_id, client) {
-  const query = `DELETE FROM exchange.cart_items WHERE cart_id = $1`;
+  const sql = `DELETE FROM exchange.cart_items WHERE cart_id = $1`;
   const values = [cart_id];
-  return await client.query(query, values);
+  return await query(sql, values, client);
 }
 
 export async function addItems(items, cart_id, client) {
@@ -54,7 +54,7 @@ export async function addItems(items, cart_id, client) {
   const productIds = items.map((item) => item.id);
   const quantities = items.map((item) => item.quantity);
 
-  const query = `
+  const sql = `
     INSERT INTO exchange.cart_items (id, cart_id, product_id, quantity)
     SELECT
       gen_random_uuid(),
@@ -64,11 +64,11 @@ export async function addItems(items, cart_id, client) {
     FROM UNNEST($2::uuid[], $3::int[]) AS u(product_id, quantity)
     `;
   const values = [cart_id, productIds, quantities];
-  return await client.query(query, values);
+  return await query(sql, values, client);
 }
 
 export async function getSellCartId(user_id) {
-  const result = await pool.query(
+  const result = await query(
     `SELECT id FROM exchange.sell_carts WHERE user_id = $1`,
     [user_id]
   );
@@ -76,7 +76,7 @@ export async function getSellCartId(user_id) {
 }
 
 export async function ensureSellCart(user_id, client) {
-  const insertRes = await client.query(
+  const insertRes = await query(
     `
     INSERT INTO exchange.sell_carts (user_id)
     VALUES ($1)
@@ -84,22 +84,22 @@ export async function ensureSellCart(user_id, client) {
     RETURNING id
     `,
     [user_id]
-  );
+  , client);
 
   if (insertRes.rows.length > 0) return insertRes.rows[0].id;
 
-  const selectRes = await client.query(
+  const selectRes = await query(
     `SELECT id FROM exchange.sell_carts WHERE user_id = $1`,
     [user_id]
-  );
+  , client);
   return selectRes.rows[0]?.id;
 }
 
 export async function clearSellCartItems(cart_id, client) {
-  return await client.query(
+  return await query(
     `DELETE FROM exchange.sell_cart_items WHERE cart_id = $1`,
     [cart_id]
-  );
+  , client);
 }
 
 export async function getSellCartScrapItems(cart_id) {
@@ -115,7 +115,7 @@ export async function getSellCartScrapItems(cart_id) {
     LEFT JOIN exchange.metals metal ON metal.id = s.metal_id
     WHERE sci.cart_id = $1 AND sci.scrap_id IS NOT NULL
   `;
-  const result = await pool.query(scrapQuery, [cart_id]);
+  const result = await query(scrapQuery, [cart_id]);
   return result.rows;
 }
 
@@ -132,15 +132,15 @@ export async function getSellCartProductItems(cart_id) {
     LEFT JOIN exchange.metals metal ON metal.id = p.metal_id
     WHERE sci.cart_id = $1 AND sci.product_id IS NOT NULL
   `;
-  const result = await pool.query(productQuery, [cart_id]);
+  const result = await query(productQuery, [cart_id]);
   return result.rows;
 }
 
 export async function findProductIdByName(product_name, client) {
-  const result = await client.query(
+  const result = await query(
     `SELECT id FROM exchange.products WHERE product_name = $1 LIMIT 1`,
     [product_name]
-  );
+  , client);
   return result.rows[0]?.id ?? null;
 }
 
@@ -150,10 +150,10 @@ export async function addSellCartProductItem(
   quantity,
   client
 ) {
-  return await client.query(
+  return await query(
     `INSERT INTO exchange.sell_cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)`,
     [cart_id, product_id, quantity]
-  );
+  , client);
 }
 
 export async function addSellCartScrapItem(
@@ -162,22 +162,22 @@ export async function addSellCartScrapItem(
   quantity,
   client
 ) {
-  return await client.query(
+  return await query(
     `INSERT INTO exchange.sell_cart_items (cart_id, scrap_id, quantity) VALUES ($1, $2, $3)`,
     [cart_id, scrap_id, quantity]
-  );
+  , client);
 }
 
 export async function scrapExists(scrap_id, client) {
-  const result = await client.query(
+  const result = await query(
     `SELECT id FROM exchange.scrap WHERE id = $1`,
     [scrap_id]
-  );
+  , client);
   return result.rows.length > 0;
 }
 
 export async function insertScrapFromCartItem(scrap_id, cartItemData, client) {
-  return await client.query(
+  return await query(
     `
     INSERT INTO exchange.scrap (
       id, metal_id, gem_id, pre_melt, purity, content, gross_unit, bid_premium
@@ -198,11 +198,11 @@ export async function insertScrapFromCartItem(scrap_id, cartItemData, client) {
       cartItemData?.gross_unit,
       cartItemData?.bid_premium,
     ]
-  );
+  , client);
 }
 
 export async function deleteOrphanScrap(client) {
-  return await client.query(
+  return await query(
     `
     DELETE FROM exchange.scrap
     WHERE id NOT IN (
@@ -211,5 +211,5 @@ export async function deleteOrphanScrap(client) {
       SELECT scrap_id FROM exchange.purchase_order_items WHERE scrap_id IS NOT NULL
     )
     `
-  );
+  , client);
 }

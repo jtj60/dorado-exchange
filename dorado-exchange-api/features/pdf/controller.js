@@ -1,65 +1,31 @@
-import * as pdfRepo from "#features/pdf/repo.js"
+import { asyncHandler } from "#shared/middleware/asyncHandler.js";
+import * as pdfService from "#features/pdf/service.js";
 
-export async function generatePackingList(req, res, next) {
-  try {
-    const pdf = await pdfRepo.generatePackingList(req.body);
+const sendPdf = (res, pdf, filename) => {
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Length": pdf.length,
+  });
+  res.end(pdf);
+};
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="packing-list.pdf"',
-      "Content-Length": pdf.length,
-    });
+export const generatePackingList = asyncHandler(async (req, res) => {
+  const pdf = await pdfService.generatePackingList(req.body);
+  sendPdf(res, pdf, "packing-list.pdf");
+});
 
-    res.end(pdf);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const generateReturnPackingList = asyncHandler(async (req, res) => {
+  const pdf = await pdfService.generateReturnPackingList(req.body);
+  sendPdf(res, pdf, "return-packing-list.pdf");
+});
 
-export async function generateReturnPackingList(req, res, next) {
-  try {
-    const pdf = await pdfRepo.generateReturnPackingList(req.body);
+export const generateInvoice = asyncHandler(async (req, res) => {
+  const pdf = await pdfService.generateInvoice(req.body);
+  sendPdf(res, pdf, "invoice.pdf");
+});
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="packing-list.pdf"',
-      "Content-Length": pdf.length,
-    });
-
-    res.end(pdf);
-  } catch (err) {
-    return next(err);
-  }
-}
-
-export async function generateInvoice(req, res, next) {
-  try {
-    const pdf = await pdfRepo.generateInvoice(req.body);
-
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="packing-list.pdf"',
-      "Content-Length": pdf.length,
-    });
-
-    res.end(pdf);
-  } catch (err) {
-    return next(err);
-  }
-}
-
-export async function generateSalesOrderInvoice(req, res, next) {
-  try {
-    const pdf = await pdfRepo.generateSalesOrderInvoice(req.body);
-
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="packing-list.pdf"',
-      "Content-Length": pdf.length,
-    });
-
-    res.end(pdf);
-  } catch (err) {
-    return next(err);
-  }
-}
+export const generateSalesOrderInvoice = asyncHandler(async (req, res) => {
+  const pdf = await pdfService.generateSalesOrderInvoice(req.body);
+  sendPdf(res, pdf, "invoice.pdf");
+});

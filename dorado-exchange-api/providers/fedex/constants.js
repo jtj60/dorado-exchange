@@ -1,3 +1,7 @@
+// Row id of the FedEx carrier in exchange.carriers. Referenced directly because
+// the purchase-order flows are FedEx-only until a second carrier is wired up.
+export const FEDEX_CARRIER_ID = "30179428-b311-4873-8d08-382901c581d8";
+
 export const DORADO_ADDRESS = {
   streetLines: [
     process.env.FEDEX_RETURN_ADDRESS_LINE_1,

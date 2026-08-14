@@ -1,7 +1,7 @@
-import pool from "#db";
+import query from "#shared/db/query.js";
 
 export async function getRate(id) {
-  const query = `
+  const sql = `
     SELECT
       r.id,
       r.metal_id,
@@ -19,12 +19,12 @@ export async function getRate(id) {
     JOIN exchange.metals m ON m.id = r.metal_id
     WHERE r.id = $1
   `;
-  const { rows } = await pool.query(query, [id]);
+  const { rows } = await query(sql, [id]);
   return rows[0];
 }
 
 export async function getAllRates() {
-  const query = `
+  const sql = `
     SELECT
       r.id,
       m.type AS metal,
@@ -37,12 +37,12 @@ export async function getAllRates() {
     JOIN exchange.metals m ON m.id = r.metal_id
     ORDER BY m.type, r.min_qty
   `;
-  const { rows } = await pool.query(query, []);
+  const { rows } = await query(sql, []);
   return rows;
 }
 
 export async function getAdminRates() {
-  const query = `
+  const sql = `
     SELECT
       r.id,
       r.metal_id,
@@ -60,12 +60,12 @@ export async function getAdminRates() {
     JOIN exchange.metals m ON m.id = r.metal_id
     ORDER BY m.type, r.min_qty
   `;
-  const { rows } = await pool.query(query, []);
+  const { rows } = await query(sql, []);
   return rows;
 }
 
 export async function createRate(rate, user_name = "Dorado Admin") {
-  const query = `
+  const sql = `
     INSERT INTO exchange.rates
       (id, metal_id, min_qty, max_qty, scrap_pct, bullion_pct, created_by, updated_by)
     VALUES
@@ -80,12 +80,12 @@ export async function createRate(rate, user_name = "Dorado Admin") {
     rate.bullion_pct,
     user_name ?? "Dorado Admin",
   ];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function updateRate(rate, user_name) {
-  const query = `
+  const sql = `
     UPDATE exchange.rates
     SET
       min_qty = $1,
@@ -105,11 +105,11 @@ export async function updateRate(rate, user_name) {
     user_name ?? 'Dorado Admin',
     rate.id,
   ];
-  const { rows } = await pool.query(query, values);
+  const { rows } = await query(sql, values);
   return rows[0];
 }
 
 export async function deleteRate(id) {
-  await pool.query(`DELETE FROM exchange.rates WHERE id = $1`, [id]);
+  await query(`DELETE FROM exchange.rates WHERE id = $1`, [id]);
   return { success: true };
 }
