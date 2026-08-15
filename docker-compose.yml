@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:15
@@ -17,9 +15,10 @@ services:
       - "${POSTGRES_PORT}:5432"
 
   backend:
-    build: 
-      context: ./dorado-exchange-api
-      dockerfile: Dockerfile.dev
+    # Context is the repo root so the pnpm workspace is inside it.
+    build:
+      context: .
+      dockerfile: api/Dockerfile.dev
     container_name: dorado-backend
     restart: always
     env_file:
@@ -35,16 +34,16 @@ services:
       EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-      EMAIL_FROM=: ${EMAIL_FROM}
-    depends_on:: ${}
+      EMAIL_FROM: ${EMAIL_FROM}
+    depends_on:
       - postgres
     ports:
       - "5000:5000"
 
   frontend:
     build:
-      context: ./dorado-exchange-frontend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: frontend/Dockerfile.dev
     container_name: dorado-frontend
     restart: always
     depends_on:
@@ -52,11 +51,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./dorado-exchange-frontend:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./frontend:/repo/frontend
+      - /repo/frontend/node_modules
+      - /repo/frontend/.next
     environment:
       NODE_ENV: development
-      CHOKIDAR_USEPOLLING: "true"  # Enables file change detection inside Docker
+      CHOKIDAR_USEPOLLING: "true" # Enables file change detection inside Docker
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       NEXT_PUBLIC_AUTH_URL: ${PUBLIC_AUTH_URL}
       NEXT_PUBLIC_FRONTEND_URL: ${PUBLIC_FRONTEND_URL}

@@ -1,0 +1,27 @@
+# Railway builds both services from the repo root so that the pnpm workspace
+# (root lockfile + packages/*) is inside the build context. Everything the
+# image does not need must be excluded here, or it is uploaded on every build.
+
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.turbo
+
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+
+**/*.log
+**/npm-debug.log*
+**/.DS_Store
+
+# Local-only tooling and compose
+.claude
+docker-compose.yml
+**/Dockerfile.dev
+
+# Tests and coverage output
+**/coverage

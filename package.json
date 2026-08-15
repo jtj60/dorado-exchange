@@ -1,0 +1,29 @@
+{
+  "name": "dorado-exchange",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "@hookform/resolvers>zod": "3.25.76"
+    },
+    "packageExtensions": {
+      "@hookform/resolvers": {
+        "peerDependencies": {
+          "zod": "*"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./{api,frontend}\" dev",
+    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./{api,frontend}\" build",
+    "start:api": "pnpm --filter @dorado/api start",
+    "start:frontend": "pnpm --filter @dorado/frontend start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

@@ -1,13 +1,24 @@
+# Build context is the repo root, not frontend, so that the pnpm workspace
+# (root lockfile + packages/*) is available to the install.
+#
+#   docker build -f frontend/Dockerfile .
+#
+# On Railway this means Root Directory must be "/" with
+# RAILWAY_DOCKERFILE_PATH=frontend/Dockerfile.
 FROM node:22-alpine
 
-RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
 
-WORKDIR /usr/src/app
+WORKDIR /repo
 
+# Manifests first, so a source-only change reuses the install layer.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY frontend/package.json frontend/
 
-# Declare build arguments
+RUN pnpm install --frozen-lockfile --filter @dorado/frontend...
+
+# NEXT_PUBLIC_* values are inlined at build time, so they must be present
+# before the build rather than supplied at runtime.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_AUTH_URL
 ARG NEXT_PUBLIC_FRONTEND_URL
@@ -17,7 +28,6 @@ ARG NEXT_PUBLIC_SENTRY_AUTH_TOKEN
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_CAPTCHA_SITE_KEY
 
-# Pass the arguments to environment variables
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_AUTH_URL=$NEXT_PUBLIC_AUTH_URL
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
@@ -28,10 +38,11 @@ ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CAPTCHA_SITE_KEY=$NEXT_PUBLIC_CAPTCHA_SITE_KEY
 ENV NEXT_DISABLE_ESLINT_PLUGIN=1
 
-COPY . .
+COPY frontend frontend
 
-RUN pnpm run build
+RUN pnpm --filter @dorado/frontend build
+
+WORKDIR /repo/frontend
 
 EXPOSE 3000
-
 CMD ["pnpm", "start"]
