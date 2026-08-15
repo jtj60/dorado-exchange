@@ -1,0 +1,12 @@
+packages:
+  - api
+  - frontend
+  - packages/*
+
+# Dependencies whose install scripts are permitted to run. pnpm blocks build
+# scripts by default; these are the ones this repo actually needs.
+allowBuilds:
+  '@sentry/cli': true
+  sharp: true
+  unrs-resolver: true
+  puppeteer: true

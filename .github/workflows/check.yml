@@ -1,0 +1,36 @@
+name: check
+
+# Railway auto-deploys master, so this is what "Wait for CI" waits on.
+# Enable that toggle on both services once this workflow is green.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Catches the two defect shapes that have reached production:
+      # an executor passed in the params slot, and an un-awaited query().
+      - name: api - database call checks
+        run: pnpm --filter @dorado/api lint:db
+
+      - name: api - tests
+        run: pnpm --filter @dorado/api test
+
+      - name: frontend - typecheck
+        run: pnpm --filter @dorado/frontend typecheck

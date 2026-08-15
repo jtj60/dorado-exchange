@@ -1,11 +1,14 @@
 {
-  "name": "dorado-exchange-api",
+  "name": "@dorado/api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node --test",
+    "lint:db": "node scripts/lint-db-calls.mjs"
   },
   "imports": {
     "#db": "./db.js",

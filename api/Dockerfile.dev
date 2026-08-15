@@ -1,3 +1,4 @@
+# Build context is the repo root. See api/Dockerfile.
 FROM node:20-bullseye-slim
 
 RUN apt-get update && apt-get install -y \
@@ -16,15 +17,24 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    wget \
     --no-install-recommends \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-
-WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY . .
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+
+WORKDIR /repo
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY api/package.json api/
+
+RUN pnpm install --frozen-lockfile --filter @dorado/api...
+
+COPY api api
+
+WORKDIR /repo/api
+
 EXPOSE 5000
-CMD ["node", "server.js"]
+CMD ["node", "--watch", "server.js"]
