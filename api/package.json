@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test",
+    "lint:db": "node scripts/lint-db-calls.mjs"
   },
   "imports": {
     "#db": "./db.js",
