@@ -7,11 +7,7 @@ export async function getCart(user_id) {
 
 export async function syncCart(user_id, items) {
   return withTransaction(async (client) => {
-    const newCart = await cartRepo.createNew(user_id, client);
-    let cart_id = newCart.id ?? '';
-    if (!newCart.id) {
-      cart_id = await cartRepo.getCartId(user_id, client);
-    }
+    const cart_id = await cartRepo.ensureCart(user_id, client);
 
     await cartRepo.clearCart(cart_id, client);
     await cartRepo.addItems(items, cart_id, client);

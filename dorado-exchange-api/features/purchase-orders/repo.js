@@ -470,9 +470,13 @@ export async function findExpiredOffers() {
 }
 
 export async function getCurrentSpotPrices(client) {
-  const { rows } = await query(`
+  const { rows } = await query(
+    `
     SELECT type, bid_spot FROM exchange.metals;
-  `, client);
+  `,
+    [],
+    client
+  );
   return rows;
 }
 

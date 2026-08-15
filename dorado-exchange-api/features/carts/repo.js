@@ -19,27 +19,33 @@ export async function getCart(user_id) {
     );
   `;
   const values = [user_id];
-  const result = query(sql, values);
+  const result = await query(sql, values);
   return result.rows;
 }
 
-export async function createNew(user_id, client) {
-  const sql = `
+// Returns the user's cart id, creating the cart if they do not have one.
+// ON CONFLICT DO NOTHING returns no row when the cart already exists, so the
+// existing id is read back. Mirrors ensureSellCart below.
+export async function ensureCart(user_id, client) {
+  const insertRes = await query(
+    `
     INSERT INTO exchange.carts (id, user_id)
     VALUES (gen_random_uuid(), $1)
     ON CONFLICT (user_id) DO NOTHING
     RETURNING id
-  `;
-  const values = [user_id];
-  const result = query(sql, values, client);
-  return result.rows[0];
-}
+    `,
+    [user_id],
+    client
+  );
 
-export async function getCartId(user_id, client) {
-  const sql = `SELECT id FROM exchange.carts WHERE user_id = $1`;
-  const values = [user_id];
-  const result = await query(sql, values, client);
-  return result.rows[0];
+  if (insertRes.rows.length > 0) return insertRes.rows[0].id;
+
+  const selectRes = await query(
+    `SELECT id FROM exchange.carts WHERE user_id = $1`,
+    [user_id],
+    client
+  );
+  return selectRes.rows[0]?.id;
 }
 
 export async function clearCart(cart_id, client) {
@@ -210,6 +216,8 @@ export async function deleteOrphanScrap(client) {
       UNION
       SELECT scrap_id FROM exchange.purchase_order_items WHERE scrap_id IS NOT NULL
     )
-    `
-  , client);
+    `,
+    [],
+    client
+  );
 }
